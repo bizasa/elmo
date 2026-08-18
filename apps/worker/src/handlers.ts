@@ -4,6 +4,8 @@ import { getDeployment } from "@workspace/deployment";
 import type { OnboardingSuggestion } from "@workspace/lib/onboarding";
 import { processPromptJob, type ProcessPromptData } from "./jobs/process-prompt";
 import { generateReportJob, type GenerateReportData } from "./jobs/generate-report";
+import { generateExplorerReportJob } from "./jobs/generate-explorer-report";
+import type { ExplorerReportJobData } from "./explorer-report-worker";
 import { scheduleMaintenanceJob, type ScheduleMaintenanceData } from "./jobs/schedule-maintenance";
 import { syncAuth0MembershipsJob, type SyncAuth0MembershipsData } from "./jobs/sync-auth0-memberships";
 import { analyzeBrandJob, type AnalyzeBrandData } from "./jobs/analyze-brand";
@@ -44,6 +46,15 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
 			withSentry("generate-report", generateReportJob),
 		);
 		console.log("Registered handler: generate-report");
+	}
+
+	if (getDeployment().features.reportGeneration) {
+		await boss.work<ExplorerReportJobData>(
+			"generate-explorer-report",
+			{ localConcurrency: 1 },
+			withSentry("generate-explorer-report", generateExplorerReportJob),
+		);
+		console.log("Registered handler: generate-explorer-report");
 	}
 
 	// batchSize: 1 keeps the returned suggestion mapped 1:1 to a single job's
