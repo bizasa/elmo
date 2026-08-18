@@ -83,6 +83,11 @@ declare global {
 			readonly GOOGLE_CLIENT_ID?: string;
 			readonly GOOGLE_CLIENT_SECRET?: string;
 			readonly RESEND_FROM_EMAIL?: string;
+			readonly VILAO_API_KEY?: string;
+			readonly VILAO_GATEWAY_URL?: string;
+			readonly CF_AIG_TOKEN?: string;
+			readonly VILAO_MODEL?: string;
+			readonly VILAO_MODEL_CHAIN?: string;
 		}
 	}
 }
