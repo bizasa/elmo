@@ -29,6 +29,7 @@ import { Route as AuthedAppBrandRouteImport } from './routes/_authed/app/$brand'
 import { Route as AuthedAppNewRouteImport } from './routes/_authed/app/new'
 import { Route as AuthedReportsIndexRouteImport } from './routes/_authed/reports/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiExplorerReportIdRouteImport } from './routes/api/explorer/$reportId'
 import { Route as ApiManifestIndexRouteImport } from './routes/api/manifest/index'
 import { Route as ApiOgIndexRouteImport } from './routes/api/og/index'
 import { Route as ApiSetupStatusIndexRouteImport } from './routes/api/setup-status/index'
@@ -162,6 +163,11 @@ const AuthedReportsIndexRoute = AuthedReportsIndexRouteImport.update({
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiExplorerReportIdRoute = ApiExplorerReportIdRouteImport.update({
+  id: '/api/explorer/$reportId',
+  path: '/api/explorer/$reportId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiManifestIndexRoute = ApiManifestIndexRouteImport.update({
@@ -370,6 +376,7 @@ export interface FileRoutesByFullPath {
   '/app/$brand': typeof AuthedAppBrandRouteWithChildren
   '/app/new': typeof AuthedAppNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/admin/': typeof AuthedAdminIndexRoute
   '/app/': typeof AuthedAppIndexRoute
   '/reports/': typeof AuthedReportsIndexRoute
@@ -421,6 +428,7 @@ export interface FileRoutesByTo {
   '/admin/workflows': typeof AuthedAdminWorkflowsRoute
   '/app/new': typeof AuthedAppNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/admin': typeof AuthedAdminIndexRoute
   '/app': typeof AuthedAppIndexRoute
   '/reports': typeof AuthedReportsIndexRoute
@@ -478,6 +486,7 @@ export interface FileRoutesById {
   '/_authed/app/$brand': typeof AuthedAppBrandRouteWithChildren
   '/_authed/app/new': typeof AuthedAppNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/_authed/admin/': typeof AuthedAdminIndexRoute
   '/_authed/app/': typeof AuthedAppIndexRoute
   '/_authed/reports/': typeof AuthedReportsIndexRoute
@@ -535,6 +544,7 @@ export interface FileRouteTypes {
     | '/app/$brand'
     | '/app/new'
     | '/api/auth/$'
+    | '/api/explorer/$reportId'
     | '/admin/'
     | '/app/'
     | '/reports/'
@@ -586,6 +596,7 @@ export interface FileRouteTypes {
     | '/admin/workflows'
     | '/app/new'
     | '/api/auth/$'
+    | '/api/explorer/$reportId'
     | '/admin'
     | '/app'
     | '/reports'
@@ -642,6 +653,7 @@ export interface FileRouteTypes {
     | '/_authed/app/$brand'
     | '/_authed/app/new'
     | '/api/auth/$'
+    | '/api/explorer/$reportId'
     | '/_authed/admin/'
     | '/_authed/app/'
     | '/_authed/reports/'
@@ -690,6 +702,7 @@ export interface RootRouteChildren {
   AuthRegisterRoute: typeof AuthRegisterRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiExplorerReportIdRoute: typeof ApiExplorerReportIdRoute
   ApiManifestIndexRoute: typeof ApiManifestIndexRoute
   ApiOgIndexRoute: typeof ApiOgIndexRoute
   ApiSetupStatusIndexRoute: typeof ApiSetupStatusIndexRoute
@@ -847,6 +860,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/explorer/$reportId': {
+      id: '/api/explorer/$reportId'
+      path: '/api/explorer/$reportId'
+      fullPath: '/api/explorer/$reportId'
+      preLoaderRoute: typeof ApiExplorerReportIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/manifest/': {
@@ -1221,6 +1241,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRegisterRoute: AuthRegisterRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiExplorerReportIdRoute: ApiExplorerReportIdRoute,
   ApiManifestIndexRoute: ApiManifestIndexRoute,
   ApiOgIndexRoute: ApiOgIndexRoute,
   ApiSetupStatusIndexRoute: ApiSetupStatusIndexRoute,
