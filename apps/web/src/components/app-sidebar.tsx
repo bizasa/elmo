@@ -162,6 +162,12 @@ export function AppSidebar({
 			icon: IconReport,
 			absolute: true,
 		};
+		const explorerItem = {
+			title: "AI Explorer",
+			url: "/reports/explorer",
+			icon: IconReport,
+			absolute: true,
+		};
 		const adminItems = isAdmin
 			? [
 					{
@@ -170,7 +176,7 @@ export function AppSidebar({
 						icon: IconTable,
 						absolute: true,
 					},
-					...(reportsEnabled ? [reportsItem] : []),
+					...(reportsEnabled ? [reportsItem, explorerItem] : []),
 					{
 						title: "Workflows",
 						url: "/admin/workflows",
@@ -184,7 +190,9 @@ export function AppSidebar({
 						absolute: true,
 					},
 				]
-			: [reportsItem];
+			: reportsEnabled
+				? [reportsItem, explorerItem]
+				: [reportsItem];
 
 		groups.push({
 			label: "Admin",
