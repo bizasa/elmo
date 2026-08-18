@@ -193,6 +193,33 @@ export const reports = pgTable(
 	}),
 ).enableRLS();
 
+export const explorerReports = pgTable(
+	"explorer_reports",
+	{
+		id: uuid("id").defaultRandom().primaryKey().notNull(),
+		brandId: text("brand_id")
+			.references(() => brands.id)
+			.notNull(),
+		brandName: text("brand_name").notNull(),
+		windowDays: integer("window_days").notNull(),
+		language: text("language").notNull(),
+		model: text("model"),
+		status: reportStatusEnum().notNull().default("pending"),
+		progress: integer("progress").notNull().default(0),
+		html: text("html"),
+		narrative: json("narrative"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		completedAt: timestamp("completed_at", { withTimezone: true }),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => ({
+		brandIdCreatedIdx: index("explorer_reports_brand_id_created_at_idx").on(table.brandId, table.createdAt),
+	}),
+).enableRLS();
+
 // One row per generated Opportunities report, per brand — append-only history
 // (every generation is kept, not overwritten). The page reads the latest row and
 // regenerates only when it's stale; see apps/web/src/server/opportunities.ts.
@@ -239,6 +266,9 @@ export type NewCitationRecord = typeof citations.$inferInsert;
 
 export type Report = typeof reports.$inferSelect;
 export type NewReport = typeof reports.$inferInsert;
+
+export type ExplorerReport = typeof explorerReports.$inferSelect;
+export type NewExplorerReport = typeof explorerReports.$inferInsert;
 
 export const SYSTEM_TAGS = {
 	BRANDED: "branded",
