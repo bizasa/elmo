@@ -28,6 +28,7 @@ import { Route as AuthedAppIndexRouteImport } from './routes/_authed/app/index'
 import { Route as AuthedAppBrandRouteImport } from './routes/_authed/app/$brand'
 import { Route as AuthedAppNewRouteImport } from './routes/_authed/app/new'
 import { Route as AuthedReportsIndexRouteImport } from './routes/_authed/reports/index'
+import { Route as AuthedReportsExplorerRouteImport } from './routes/_authed/reports/explorer'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiExplorerReportIdRouteImport } from './routes/api/explorer/$reportId'
 import { Route as ApiManifestIndexRouteImport } from './routes/api/manifest/index'
@@ -158,6 +159,11 @@ const AuthedAppNewRoute = AuthedAppNewRouteImport.update({
 const AuthedReportsIndexRoute = AuthedReportsIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthedReportsRoute,
+} as any)
+const AuthedReportsExplorerRoute = AuthedReportsExplorerRouteImport.update({
+  id: '/explorer',
+  path: '/explorer',
   getParentRoute: () => AuthedReportsRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -375,6 +381,7 @@ export interface FileRoutesByFullPath {
   '/admin/workflows': typeof AuthedAdminWorkflowsRoute
   '/app/$brand': typeof AuthedAppBrandRouteWithChildren
   '/app/new': typeof AuthedAppNewRoute
+  '/reports/explorer': typeof AuthedReportsExplorerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/admin/': typeof AuthedAdminIndexRoute
@@ -427,6 +434,7 @@ export interface FileRoutesByTo {
   '/admin/tools': typeof AuthedAdminToolsRoute
   '/admin/workflows': typeof AuthedAdminWorkflowsRoute
   '/app/new': typeof AuthedAppNewRoute
+  '/reports/explorer': typeof AuthedReportsExplorerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/admin': typeof AuthedAdminIndexRoute
@@ -485,6 +493,7 @@ export interface FileRoutesById {
   '/_authed/admin/workflows': typeof AuthedAdminWorkflowsRoute
   '/_authed/app/$brand': typeof AuthedAppBrandRouteWithChildren
   '/_authed/app/new': typeof AuthedAppNewRoute
+  '/_authed/reports/explorer': typeof AuthedReportsExplorerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/_authed/admin/': typeof AuthedAdminIndexRoute
@@ -543,6 +552,7 @@ export interface FileRouteTypes {
     | '/admin/workflows'
     | '/app/$brand'
     | '/app/new'
+    | '/reports/explorer'
     | '/api/auth/$'
     | '/api/explorer/$reportId'
     | '/admin/'
@@ -595,6 +605,7 @@ export interface FileRouteTypes {
     | '/admin/tools'
     | '/admin/workflows'
     | '/app/new'
+    | '/reports/explorer'
     | '/api/auth/$'
     | '/api/explorer/$reportId'
     | '/admin'
@@ -652,6 +663,7 @@ export interface FileRouteTypes {
     | '/_authed/admin/workflows'
     | '/_authed/app/$brand'
     | '/_authed/app/new'
+    | '/_authed/reports/explorer'
     | '/api/auth/$'
     | '/api/explorer/$reportId'
     | '/_authed/admin/'
@@ -853,6 +865,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/reports/'
       preLoaderRoute: typeof AuthedReportsIndexRouteImport
+      parentRoute: typeof AuthedReportsRoute
+    }
+    '/_authed/reports/explorer': {
+      id: '/_authed/reports/explorer'
+      path: '/explorer'
+      fullPath: '/reports/explorer'
+      preLoaderRoute: typeof AuthedReportsExplorerRouteImport
       parentRoute: typeof AuthedReportsRoute
     }
     '/api/auth/$': {
@@ -1188,11 +1207,13 @@ const AuthedAppRouteWithChildren = AuthedAppRoute._addFileChildren(
 )
 
 interface AuthedReportsRouteChildren {
+  AuthedReportsExplorerRoute: typeof AuthedReportsExplorerRoute
   AuthedReportsIndexRoute: typeof AuthedReportsIndexRoute
   AuthedReportsRenderReportIdRoute: typeof AuthedReportsRenderReportIdRoute
 }
 
 const AuthedReportsRouteChildren: AuthedReportsRouteChildren = {
+  AuthedReportsExplorerRoute: AuthedReportsExplorerRoute,
   AuthedReportsIndexRoute: AuthedReportsIndexRoute,
   AuthedReportsRenderReportIdRoute: AuthedReportsRenderReportIdRoute,
 }
