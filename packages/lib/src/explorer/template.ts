@@ -179,9 +179,9 @@ function card(r){
   const comps=r.c.map(c=>\`<span class="cc \${UNTRACKED.has(c)?"u":""}">\${esc(c)}</span>\`).join("");
   return \`<div class="card">
     <div class="chead">
-      <span class="mchip \${mCls(r.m)}">\${mLabel[r.m]||r.m}</span>
-      <span class="tag">\${r.pr}</span><span class="tag">\${r.fn}</span>
-      <span class="vbadge \${r.v?"y":"n"}">\${r.v?("✓ "+BRAND_LABEL+" #"+(r.pos??"?")):("✗ không nhắc "+BRAND_LABEL)}</span>
+      <span class="mchip \${mCls(r.m)}">\${esc(mLabel[r.m]||r.m)}</span>
+      <span class="tag">\${esc(r.pr)}</span><span class="tag">\${esc(r.fn)}</span>
+      <span class="vbadge \${r.v?"y":"n"}">\${r.v?("✓ "+esc(BRAND_LABEL)+" #"+(r.pos??"?")):("✗ không nhắc "+esc(BRAND_LABEL))}</span>
       <span class="date">\${r.d}</span>
     </div>
     <div class="prompt">\${esc(r.p)}</div>

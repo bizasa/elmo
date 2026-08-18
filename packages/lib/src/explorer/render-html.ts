@@ -5,6 +5,24 @@ function esc(s: string): string {
 	return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
 }
 
+const LINE_SEPARATOR = String.fromCharCode(0x2028);
+const PARAGRAPH_SEPARATOR = String.fromCharCode(0x2029);
+
+/** JSON safe to embed inside an inline <script>: escapes the chars that could
+ * break out of the tag (`<`, needed to neutralize `</script>`) or break the
+ * script's JS parsing (`>` for defense-in-depth; U+2028/U+2029, which
+ * JSON.stringify emits raw but which are illegal unescaped inside a JS string
+ * literal). `&` is intentionally left alone — it needs no escaping here (this
+ * is script text, not an HTML entity context) and escaping it would corrupt
+ * literal `$&`-style content. */
+function scriptJson(value: unknown): string {
+	return JSON.stringify(value)
+		.replace(/</g, "\\u003c")
+		.replace(/>/g, "\\u003e")
+		.replace(new RegExp(LINE_SEPARATOR, "g"), "\\u2028")
+		.replace(new RegExp(PARAGRAPH_SEPARATOR, "g"), "\\u2029");
+}
+
 function narrativeHtml(n: Narrative): string {
 	const findings = n.keyFindings.map((f) => `<li>${esc(f)}</li>`).join("");
 	const recs = n.recommendations.map((r) => `<li>${esc(r)}</li>`).join("");
@@ -24,13 +42,16 @@ export interface RenderArgs {
 	sampleNote: string;
 }
 
-/** Inject the deterministic data + narrative into the explorer template. */
+/** Inject the deterministic data + narrative into the explorer template.
+ * All placeholders use FUNCTION replacers so `$`-sequences in the content are
+ * inserted literally (String.replace treats $-patterns specially only for
+ * string replacements). */
 export function renderExplorerHtml(args: RenderArgs): string {
 	const { data, narrative, brandName, windowDays, sampleNote } = args;
 	const footer = esc(`Nguồn: Elmo · brand ${brandName} · ${windowDays} ngày gần nhất. ${sampleNote}`);
-	return EXPLORER_TEMPLATE.replace("__DATA__", JSON.stringify(data.records))
-		.replace("__CONFIG__", JSON.stringify(data.config))
-		.replace("__BRAND_LABEL__", JSON.stringify(brandName))
-		.replace("__FOOTER_HTML__", JSON.stringify(footer))
-		.replace("__NARRATIVE_HTML__", narrative ? narrativeHtml(narrative) : "");
+	return EXPLORER_TEMPLATE.replace("__DATA__", () => scriptJson(data.records))
+		.replace("__CONFIG__", () => scriptJson(data.config))
+		.replace("__BRAND_LABEL__", () => scriptJson(brandName))
+		.replace("__FOOTER_HTML__", () => scriptJson(footer))
+		.replace("__NARRATIVE_HTML__", () => (narrative ? narrativeHtml(narrative) : ""));
 }
