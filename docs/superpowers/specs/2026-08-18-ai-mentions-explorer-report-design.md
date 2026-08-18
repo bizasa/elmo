@@ -52,7 +52,7 @@ credits per report) before rendering a static printable PDF. The new feature rea
 | Vilao key | `content-hub` (`sk-85b1…`) — dedicated for clean cost attribution |
 | Model default | `occ/claude-sonnet-5`, configurable via env + per-report override |
 | Opus | `occ/claude-opus-4-8` IS available on Vilao — usable as default or top fallback if max prose quality wanted; not required since narrative is grounded |
-| Fallback | Vilao chain `sonnet-5 → gpt-5.5 → sonnet-5 (alt route)`, then OpenRouter as final fallback |
+| Fallback | Exhaust **all** Vilao models in one long chain (cost-optimized; realtime/speed not needed), then OpenRouter as the absolute last resort |
 | Language | Auto by brand (Visana→vi, avia/cozyhome→en), override at generation time |
 
 ### Vilao models available (as of 2026-08-18)
@@ -126,9 +126,11 @@ Gateway, OpenAI-compatible endpoint `custom-vilao/v1/chat/completions`:
 - Request narrative as strict JSON (response parsed + validated with zod).
 
 Fallback wrapper: iterate `VILAO_MODEL_CHAIN`; on timeout / 5xx / empty-or-invalid response /
-refusal, advance to the next model. If the whole Vilao chain fails, fall back to OpenRouter
-(already configured in Elmo's provider layer) with an equivalent prompt. The `model` column
-records which model actually produced the narrative.
+refusal, advance to the next model. The chain **exhausts every Vilao model** before giving up —
+Vilao is cheap and this job is batch (no realtime/latency constraint), so trying all of them
+maximizes the chance a report completes without leaving Vilao. Only if the **entire** Vilao
+chain fails does it fall back to OpenRouter (already configured in Elmo's provider layer) with
+an equivalent prompt. The `model` column records which model actually produced the narrative.
 
 New env (added to `~/.elmo/.env`, mode 600):
 
@@ -137,10 +139,15 @@ VILAO_API_KEY=<content-hub key sk-85b1…>
 VILAO_GATEWAY_URL=<CF AI Gateway base, .../custom-vilao/v1/chat/completions>
 CF_AIG_TOKEN=<cf-aig-authorization token>
 VILAO_MODEL=occ/claude-sonnet-5
-VILAO_MODEL_CHAIN=occ/claude-sonnet-5,gx/gpt-5.5,krr/claude-sonnet-5
+VILAO_MODEL_CHAIN=occ/claude-sonnet-5,krr/claude-sonnet-5,occ/claude-opus-4-8,occ/claude-fable-5,gx/gpt-5.5,cd/gpt-5.5,cd/gpt-5.6-sol,cd/gpt-5.6-terra
 ```
 
-(For max prose quality, set `VILAO_MODEL=occ/claude-opus-4-8` — it is available; one env change.)
+The chain lists **all 8 concrete Vilao model ids**, ordered by suitability for grounded prose
+(Sonnet 5 both routes → Opus 4.8 → Fable 5 → GPT-5.5 both routes → GPT-5.6 variants). Combos
+`gpt5` / `priority` are routing aliases, not distinct models, so they are omitted from the chain
+to avoid retrying the same underlying model. `VILAO_MODEL` (the first attempt) is just the head
+of the chain; set it to `occ/claude-opus-4-8` if you want Opus tried first. OpenRouter is only
+reached after every entry above fails.
 
 Config validation for these lives in `packages/config` env schema (optional, so UI-only dev
 still boots). Vilao is used **only** for narrative — it does not touch the scraping provider
