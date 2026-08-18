@@ -1,0 +1,268 @@
+# End-to-End Integration Tests
+#
+# Verifies the open source local deployment works end-to-end.
+# Walks through the `elmo init --dev` CLI flow in CI mode, then runs in two
+# phases against the Dockerized stack: with the worker down, seed data and run
+# the fixture-dependent Playwright + Bruno suites; then start the worker
+# (pointed at the no-network `stub` provider) and run the `worker` Playwright
+# project, which submits a job and asserts the worker processes it. Starting
+# the worker only after the fixture suites finish keeps its self-healing
+# scheduler from mutating seeded data.
+#
+# This workflow is the SINGLE SOURCE OF TRUTH for E2E test orchestration.
+# Run locally via: pnpm test:e2e-local  (replays this workflow with
+# https://github.com/nektos/act); `pnpm test:e2e` runs just the fixture specs
+# against an already-running stack.
+
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E Integration Tests
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 30
+
+    env:
+      # One file set for every `docker compose` invocation below, so no step
+      # can silently run against a different effective config. The override
+      # scopes the worker to the no-network stub provider.
+      COMPOSE_FILE: e2e/.elmo/elmo.yaml:e2e/worker-override.yaml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # NB: no free-disk-space step here — it predated the Blacksmith migration
+      # and is unnecessary on these runners (publish.yaml builds the same
+      # Dockerfile without it). We also deliberately do NOT use a buildx
+      # sticky-disk builder: `docker compose build` doesn't wire up its cache,
+      # and the container driver would serialize each image to load it back into
+      # the local daemon for `up` — that export/import tax outweighs any cache
+      # savings for this build-and-run-locally job. The default driver builds
+      # straight into the daemon's image store.
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers
+        uses: nick-fields/retry@v4
+        with:
+          timeout_minutes: 1
+          max_attempts: 3
+          command: pnpm -C apps/web exec playwright install chromium --with-deps
+
+      - name: Build elmo CLI
+        run: pnpm -C apps/cli build
+
+      - name: "Run: elmo init --dev (via cli-driver)"
+        run: |
+          mkdir -p e2e/.elmo
+          cd e2e
+          npx tsx cli-driver.ts "$PWD/.elmo" "$GITHUB_WORKSPACE"
+
+      - name: Patch .env with test overrides
+        run: |
+          cat >> e2e/.elmo/.env <<'PATCH'
+
+          # E2E test overrides
+          ADMIN_API_KEYS=test-api-key-e2e
+          ONBOARDING_LLM_TARGET=stub:stub
+          SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
+          PATCH
+
+      - name: Show generated config
+        run: |
+          echo "=== .env ==="
+          cat e2e/.elmo/.env
+          echo ""
+          echo "=== elmo.yaml (services) ==="
+          grep -E '^\s{2}\w' e2e/.elmo/elmo.yaml || true
+
+      # Build all images so a broken worker (or db-migrate) Dockerfile fails CI
+      # here. web/worker/migrate share the base/deps/builder stages, so BuildKit
+      # builds those once — building all three costs little more than building
+      # web alone. postgres is an image pull, so `build` skips it.
+      - name: Build images
+        run: docker compose build
+
+      # Start web only (with its deps db-migrate + postgres). The worker stays
+      # down for now — it comes up in phase 2, after the fixture suites run.
+      - name: Start web
+        run: docker compose up -d --no-build web
+
+      - name: Wait for web
+        run: |
+          echo "Waiting for web to be ready on http://localhost:1515..."
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:1515/ 2>/dev/null; then
+              echo "Web is ready."
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "ERROR: Web did not become ready in time."
+          docker compose logs
+          exit 1
+
+      - name: Seed test data
+        run: cd e2e && npx tsx seed.ts
+
+      # Phase 1 — worker still down. Run everything that reads the seeded
+      # fixtures, so no background job can mutate them mid-suite.
+      - name: Run Playwright E2E tests
+        run: pnpm -C e2e exec playwright test --project=fixtures
+
+      - name: Run Bruno API tests
+        run: pnpm test:api
+
+      # Phase 2 — bring the worker up and prove it processes a submitted job.
+      # No readiness wait: the job the spec submits is durable in pg-boss, so
+      # the spec's own DB poll absorbs worker startup.
+      - name: Start worker
+        run: docker compose up -d --no-build worker
+
+      # `github` keeps PR annotations on failure; omitting `html` leaves phase
+      # 1's playwright-report/ untouched for the upload below.
+      - name: Run worker job-processing test
+        run: pnpm -C e2e exec playwright test --project=worker --reporter=list,github
+
+      - name: Dump worker logs
+        if: failure()
+        run: docker compose logs worker
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 14
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: test-results
+          path: |
+            e2e/test-results/
+            e2e/test-results-worker/
+          retention-days: 7
+
+  # Scheduling-policy verification: drives a real
+  # worker over a real database with the no-network stub provider, in local
+  # mode (legacy volume + dueness metering must match the pre-policy behavior
+  # exactly) and in cloud mode (plan cadence/replication, Claude assignment,
+  # cancellation stop, resubscribe revival, usage attribution). This is the
+  # red-green guard that the run policy cannot change what self-hosted and
+  # whitelabel deployments run.
+  scheduling-policy:
+    name: Scheduling Policy Verification
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: elmo
+          POSTGRES_PASSWORD: elmo
+          POSTGRES_DB: elmo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U elmo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://elmo:elmo@localhost:5432/elmo
+      BETTER_AUTH_SECRET: scheduling-policy-ci-secret-0123456789
+      APP_URL: http://localhost:3000
+      DISABLE_TELEMETRY: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Apply migrations
+        run: pnpm -C packages/lib exec drizzle-kit migrate
+
+      - name: Seed local fixtures
+        run: pnpm -C e2e exec tsx seed.ts
+
+      - name: "Local mode: legacy volume + dueness metering"
+        env:
+          DEPLOYMENT_MODE: local
+          SCRAPE_TARGETS: stub:stub
+        run: |
+          ELMO_ENCRYPTION_KEY="$(openssl rand -base64 32)" \
+            nohup pnpm -C apps/worker exec tsx src/index.ts > /tmp/worker-local.log 2>&1 &
+          echo $! > /tmp/worker.pid
+          sleep 15
+          npx tsx e2e/scheduling/verify-scheduling.ts local
+          kill "$(cat /tmp/worker.pid)" || true
+
+      - name: "Cloud mode: plan policy + billing lifecycle"
+        env:
+          DEPLOYMENT_MODE: cloud
+          SCRAPE_TARGETS: chatgpt:stub,perplexity:stub,gemini:stub,copilot:stub,claude:stub,claude:stub:online
+          STRIPE_SECRET_KEY: sk_test_ci
+          STRIPE_WEBHOOK_SECRET: whsec_ci
+          RESEND_API_KEY: re_ci
+          RESEND_FROM_EMAIL: Elmo <ci@example.com>
+          GOOGLE_CLIENT_ID: ci
+          GOOGLE_CLIENT_SECRET: ci
+        run: |
+          nohup pnpm -C apps/worker exec tsx src/index.ts > /tmp/worker-cloud.log 2>&1 &
+          echo $! > /tmp/worker.pid
+          sleep 15
+          npx tsx e2e/scheduling/verify-scheduling.ts cloud
+          kill "$(cat /tmp/worker.pid)" || true
+
+      - name: Dump worker logs
+        if: failure()
+        run: |
+          echo "=== local worker ==="; cat /tmp/worker-local.log 2>/dev/null || true
+          echo "=== cloud worker ==="; cat /tmp/worker-cloud.log 2>/dev/null || true

@@ -1,0 +1,38 @@
+{
+  "name": "elmo",
+  "version": "0.2.13",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "format": "biome format --write --config-path=biome.json .",
+    "format-and-lint": "biome check --config-path=biome.json .",
+    "format-and-lint:fix": "biome check --write --config-path=biome.json .",
+    "knip": "knip",
+    "elmo": "tsx apps/cli/src/index.ts",
+    "cli:link": "npm unlink -g @elmohq/cli || true && pnpm -C apps/cli build && (cd apps/cli && npm link)",
+    "cli:unlink": "npm unlink -g @elmohq/cli",
+    "changeset": "changeset",
+    "version-packages": "changeset version && node scripts/sync-root-version.mjs",
+    "release": "pnpm build && changeset publish",
+    "test:e2e": "pnpm --filter e2e test:e2e",
+    "test:e2e-local": "bash e2e/run-local.sh",
+    "test:api": "pnpm --filter e2e test:api",
+    "license-check": "node scripts/check-licenses.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.6",
+    "@changesets/cli": "^2.31.1",
+    "knip": "^6.31.0",
+    "tsx": "^4.23.1",
+    "turbo": "^2.10.8",
+    "typescript": "^7.0.2"
+  }
+}
