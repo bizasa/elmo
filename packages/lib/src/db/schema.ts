@@ -118,6 +118,9 @@ export const promptRuns = pgTable(
 		webQueries: text("web_queries").array().notNull().default([]),
 		brandMentioned: boolean("brand_mentioned").notNull(),
 		competitorsMentioned: text("competitors_mentioned").array().notNull().default([]),
+		// 1-based rank of the brand among the entities mentioned in this answer,
+		// by order of first appearance. Null when the brand isn't mentioned.
+		brandPosition: smallint("brand_position"),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(table) => ({
