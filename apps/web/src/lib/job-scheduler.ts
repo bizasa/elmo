@@ -265,3 +265,27 @@ export async function sendReportJob(
 		return false;
 	}
 }
+
+/**
+ * Sends an explorer report generation job.
+ */
+export async function sendExplorerReportJob(
+	reportId: string,
+	brandId: string,
+	windowDays: number,
+	language: string,
+): Promise<boolean> {
+	try {
+		const boss = await getBoss();
+		await boss.send(
+			"generate-explorer-report",
+			{ reportId, brandId, windowDays, language },
+			{ retryLimit: 2, retryDelay: 60, retryBackoff: true, expireInSeconds: 60 * 30 },
+		);
+		console.log(`Sent explorer report job for ${reportId}`);
+		return true;
+	} catch (error) {
+		console.error(`Failed to send explorer report job for ${reportId}:`, error);
+		return false;
+	}
+}
