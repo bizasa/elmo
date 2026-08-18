@@ -33,7 +33,12 @@
 		"./providers/types": "./src/providers/types.ts",
 		"./entitlements": "./src/entitlements/index.ts",
 		"./run-policy": "./src/run-policy/index.ts",
-		"./usage": "./src/usage/cost.ts"
+		"./usage": "./src/usage/cost.ts",
+		"./explorer/build-data": "./src/explorer/build-data.ts",
+		"./explorer/metrics": "./src/explorer/metrics.ts",
+		"./explorer/render-html": "./src/explorer/render-html.ts",
+		"./explorer/types": "./src/explorer/types.ts",
+		"./narrative/generate-narrative": "./src/narrative/generate-narrative.ts"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^4.0.27",
