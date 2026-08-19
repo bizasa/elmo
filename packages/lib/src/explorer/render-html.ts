@@ -24,14 +24,8 @@ function scriptJson(value: unknown): string {
 }
 
 function narrativeHtml(n: Narrative): string {
-	const findings = n.keyFindings.map((f) => `<li>${esc(f)}</li>`).join("");
-	const recs = n.recommendations.map((r) => `<li>${esc(r)}</li>`).join("");
-	return (
-		`<h2>${esc("Tóm tắt")}</h2><p>${esc(n.executiveSummary)}</p>` +
-		`<h3>Findings</h3><ul>${findings}</ul>` +
-		`<h3>Competitor gaps</h3><p>${esc(n.competitorGaps)}</p>` +
-		`<h3>Recommendations</h3><ul>${recs}</ul>`
-	);
+	const recs = n.recommendations.map((r) => `<li><b>${esc(r.title)}</b> — ${esc(r.body)}</li>`).join("");
+	return `<h2>${esc("Tóm tắt")}</h2><p>${esc(n.summary)}</p>` + `<h3>${esc("Khuyến nghị")}</h3><ul>${recs}</ul>`;
 }
 
 export interface RenderArgs {

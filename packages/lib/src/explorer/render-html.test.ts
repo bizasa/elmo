@@ -6,7 +6,14 @@ const data: ExplorerData = {
 	records: [{ m: "chatgpt", pr: "china-visa", fn: "bofu", v: true, pos: 1, d: "2026-08-10", p: "q", c: ["X"], x: "Visana wins" }],
 	config: { brandTerms: ["visana"], models: [["chatgpt", "ChatGPT"]], prods: [["china-visa", "china-visa"]], funs: [["bofu", "BOFU"]], alts: { X: ["x"] }, untracked: [] },
 };
-const narrative: Narrative = { executiveSummary: "Sum & <ok>", keyFindings: ["f1"], competitorGaps: "gap", recommendations: ["r1"] };
+const narrative: Narrative = {
+	summary: "Sum & <ok>",
+	byModelNote: "models note",
+	byFunnelNote: "funnel note",
+	whatLLMsSay: "llms say",
+	weakNote: "weak note",
+	recommendations: [{ title: "r1", body: "b1" }, { title: "r2", body: "b2" }, { title: "r3", body: "b3" }],
+};
 
 describe("renderExplorerHtml", () => {
 	it("injects data, brand label, narrative, and footer with no leftover placeholders", () => {
@@ -14,7 +21,7 @@ describe("renderExplorerHtml", () => {
 		expect(html).not.toMatch(/__DATA__|__CONFIG__|__BRAND_LABEL__|__FOOTER_HTML__|__NARRATIVE_HTML__/);
 		expect(html).toContain('"china-visa"');
 		expect(html).toContain("Visana");
-		expect(html).toContain("f1");
+		expect(html).toContain("r1");
 		expect(html).toContain("Sum &amp; &lt;ok&gt;");
 	});
 
@@ -36,7 +43,13 @@ describe("renderExplorerHtml", () => {
 			records: [{ m: "chatgpt", pr: "china-visa", fn: "bofu", v: true, pos: 1, d: "2026-08-10", p: "q", c: [], x: "price $100, $& and $' and $` end" }],
 			config: { brandTerms: ["visana"], models: [["chatgpt", "ChatGPT"]], prods: [["china-visa", "china-visa"]], funs: [["bofu", "BOFU"]], alts: {}, untracked: [] },
 		};
-		const html = renderExplorerHtml({ data: dollar, narrative: { executiveSummary: "cost $5 $& $' done", keyFindings: [], competitorGaps: "", recommendations: [] }, brandName: "Visana", windowDays: 30, sampleNote: "n" });
+		const html = renderExplorerHtml({
+			data: dollar,
+			narrative: { summary: "cost $5 $& $' done", byModelNote: "", byFunnelNote: "", whatLLMsSay: "", weakNote: "", recommendations: [] },
+			brandName: "Visana",
+			windowDays: 30,
+			sampleNote: "n",
+		});
 		// The literal $-sequences survive verbatim (were not expanded by String.replace).
 		expect(html).toContain("price $100, $& and $' and $` end");
 		expect(html).not.toContain("__DATA__");

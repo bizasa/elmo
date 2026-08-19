@@ -28,10 +28,12 @@ export interface ExplorerData {
 }
 
 export const narrativeSchema = z.object({
-	executiveSummary: z.string(),
-	keyFindings: z.array(z.string()),
-	competitorGaps: z.string(),
-	recommendations: z.array(z.string()),
+	summary: z.string(),
+	byModelNote: z.string(),
+	byFunnelNote: z.string(),
+	whatLLMsSay: z.string(),
+	weakNote: z.string(),
+	recommendations: z.array(z.object({ title: z.string(), body: z.string() })).min(3).max(6),
 });
 
 export type Narrative = z.infer<typeof narrativeSchema>;
@@ -47,4 +49,26 @@ export interface NarrativeMetrics {
 	byFunnel: { funnel: string; answers: number; visibilityPct: number }[];
 	topCompetitors: { name: string; mentions: number }[];
 	weakPrompts: { prompt: string; visibilityPct: number }[];
+}
+
+/** Report-tab aggregates, all derivable from ExplorerData.records. */
+export interface ReportMetrics {
+	brandName: string;
+	windowDays: number;
+	totalAnswers: number;
+	mentioned: number;
+	visibilityPct: number;
+	avgPosition: number | null;
+	promptsStrong: number;
+	promptsWeak: number;
+	modelCount: number;
+	promptCount: number;
+	productCount: number;
+	byModel: { model: string; runs: number; mentioned: number; visibilityPct: number; avgPosition: number | null }[];
+	byFunnel: { key: string; runs: number; visibilityPct: number; avgPosition: number | null }[];
+	byProduct: { key: string; runs: number; visibilityPct: number; avgPosition: number | null }[];
+	competitorsTracked: string[];
+	competitorsUntracked: string[];
+	weakPrompts: { prompt: string; product: string; funnel: string; mentioned: number; runs: number; visibilityPct: number }[];
+	allPrompts: { prompt: string; product: string; funnel: string; runs: number; visibilityPct: number; avgPosition: number | null }[];
 }
