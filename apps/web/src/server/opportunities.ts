@@ -152,7 +152,9 @@ Hard rules — keep every recommendation realistic for a content/marketing team:
 const TASK = `Using ONLY the data above, return the structured output:
 - summary: 3-5 bullets, one short sentence each — the competitive gaps, where AI sources its answers, and the through-line of the plan. Don't restate overall/per-platform visibility or define metrics.
 - opportunities: 8-12 prioritized opportunities (highest impact first), each sorted into a category, with a plain-language "why" (the motivation, for a non-expert) and the tracked prompts it helps (verbatim). Spread them across the categories the data supports — don't force all four.
-- risks: 2-4 short caveats (hard-to-win areas or tactics to avoid).`;
+- risks: 2-4 short caveats (hard-to-win areas or tactics to avoid).
+
+LANGUAGE: Write ALL free-text prose in Vietnamese (tiếng Việt) — the summary bullets, every opportunity's "why", and the risks. Keep these EXACTLY as-is, do NOT translate: the category values (creation/existing-content/outreach/social), the verbatim tracked-prompt text, tags, and any brand names, domain names, site names, or product names. Metric terms may be given in Vietnamese but keep any inline percentages/numbers as-is.`;
 
 // ============================================================================
 // Digest builder
