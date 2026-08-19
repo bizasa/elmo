@@ -1,4 +1,5 @@
-export const EXPLORER_TEMPLATE = `<title>__BRAND_NAME__ — Khám phá câu trả lời AI</title>
+export const EXPLORER_TEMPLATE = `<meta charset="utf-8">
+<title>__BRAND_NAME__ — Khám phá câu trả lời AI</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root{
