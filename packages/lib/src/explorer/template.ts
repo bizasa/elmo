@@ -1,4 +1,4 @@
-export const EXPLORER_TEMPLATE = `<title>Visana AI Mentions Explorer</title>
+export const EXPLORER_TEMPLATE = `<title>__BRAND_NAME__ — Khám phá câu trả lời AI</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root{
@@ -79,16 +79,16 @@ footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);color:v
 </style>
 
 <div class="wrap">
-  <div class="eyebrow">Elmo · Visana · Trình khám phá câu trả lời AI</div>
-  <h1>Các LLM nói gì về Visana — tra cứu theo ngữ cảnh</h1>
-  <p class="lede">Lọc theo model, sản phẩm, tầng phễu, có/không nhắc Visana, hoặc theo đối thủ — rồi đọc thẳng đoạn văn AI sinh ra (Visana tô xanh, đối thủ tô vàng). Dùng để đối chiếu chéo từng trường hợp cụ thể.</p>
+  <div class="eyebrow">Elmo · __BRAND_NAME__ · Trình khám phá câu trả lời AI</div>
+  <h1>Các LLM nói gì về __BRAND_NAME__ — tra cứu theo ngữ cảnh</h1>
+  <p class="lede">Lọc theo model, sản phẩm, tầng phễu, có/không nhắc __BRAND_NAME__, hoặc theo đối thủ — rồi đọc thẳng đoạn văn AI sinh ra (__BRAND_NAME__ tô xanh, đối thủ tô vàng). Dùng để đối chiếu chéo từng trường hợp cụ thể.</p>
 
   <div class="filters">
     <div class="frow"><input id="q" class="search" type="search" placeholder="Tìm trong câu hỏi hoặc nội dung trả lời…"><button class="reset" id="reset">Đặt lại</button></div>
     <div class="frow"><span class="flabel">Model</span><span id="fmodels"></span></div>
     <div class="frow"><span class="flabel">Sản phẩm</span><span id="fprods"></span>
       <span class="flabel" style="margin-left:12px">Phễu</span><span id="ffuns"></span></div>
-    <div class="frow"><span class="flabel">Visana</span>
+    <div class="frow"><span class="flabel">__BRAND_NAME__</span>
       <button class="chip tri" id="fvis" data-on="all">Tất cả</button>
       <span class="flabel" style="margin-left:12px">Đối thủ</span>
       <select id="fcomp"><option value="">— Mọi đối thủ —</option></select></div>
@@ -97,10 +97,10 @@ footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);color:v
   <div class="statbar" id="stat"></div>
   <div id="narrative">__NARRATIVE_HTML__</div>
   <div class="legend">
-    <span><i class="sw" style="background:var(--hl-v)"></i>Visana</span>
+    <span><i class="sw" style="background:var(--hl-v)"></i>__BRAND_NAME__</span>
     <span><i class="sw" style="background:var(--hl-c)"></i>Đối thủ</span>
     <span><i class="sw" style="background:var(--hl-a)"></i>Đối thủ đang lọc</span>
-    <span><i class="sw" style="background:var(--weak-bg)"></i>chip đỏ = chưa được Visana theo dõi</span>
+    <span><i class="sw" style="background:var(--weak-bg)"></i>chip đỏ = chưa được __BRAND_NAME__ theo dõi</span>
   </div>
 
   <div class="results" id="results"></div>

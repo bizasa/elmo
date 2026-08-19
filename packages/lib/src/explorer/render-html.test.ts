@@ -42,4 +42,17 @@ describe("renderExplorerHtml", () => {
 		expect(html).not.toContain("__DATA__");
 		expect(html).not.toContain("__NARRATIVE_HTML__");
 	});
+
+	it("parameterizes the header brand name and leaves no template brand leak", () => {
+		const aviaData: ExplorerData = {
+			records: [{ m: "chatgpt", pr: "fast-track", fn: "bofu", v: true, pos: 1, d: "2026-08-10", p: "q", c: [], x: "avia is quick" }],
+			config: { brandTerms: ["avia"], models: [["chatgpt", "ChatGPT"]], prods: [["fast-track", "fast-track"]], funs: [["bofu", "BOFU"]], alts: {}, untracked: [] },
+		};
+		const html = renderExplorerHtml({ data: aviaData, narrative: null, brandName: "avia", windowDays: 30, sampleNote: "n" });
+		// Header shows the real brand, not the template's original hardcoded brand.
+		expect(html).toContain("<title>avia — Khám phá câu trả lời AI</title>");
+		expect(html).toContain("Các LLM nói gì về avia");
+		expect(html).not.toContain("__BRAND_NAME__");
+		expect(html).not.toContain("Visana");
+	});
 });

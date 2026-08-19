@@ -77,7 +77,7 @@ function ExplorerReportsPage() {
 
 	const [brandId, setBrandId] = useState("");
 	const [windowDays, setWindowDays] = useState("30");
-	const [language, setLanguage] = useState<"en" | "vi">("en");
+	const [language, setLanguage] = useState<"en" | "vi">("vi");
 	const [error, setError] = useState("");
 
 	const createMutation = useMutation({

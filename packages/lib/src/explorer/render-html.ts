@@ -53,5 +53,7 @@ export function renderExplorerHtml(args: RenderArgs): string {
 		.replace("__CONFIG__", () => scriptJson(data.config))
 		.replace("__BRAND_LABEL__", () => scriptJson(brandName))
 		.replace("__FOOTER_HTML__", () => scriptJson(footer))
-		.replace("__NARRATIVE_HTML__", () => (narrative ? narrativeHtml(narrative) : ""));
+		.replace("__NARRATIVE_HTML__", () => (narrative ? narrativeHtml(narrative) : ""))
+		// Header/legend brand name appears in several spots; escape once, replace all.
+		.replace(/__BRAND_NAME__/g, () => esc(brandName));
 }
