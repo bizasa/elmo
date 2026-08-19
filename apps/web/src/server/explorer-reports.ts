@@ -3,52 +3,37 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireAuthSession, hasReportAccess } from "@/lib/auth/helpers";
+import { requireAuthSession, requireBrandAccess } from "@/lib/auth/helpers";
 import { db } from "@workspace/lib/db/db";
 import { brands, explorerReports, type NewExplorerReport } from "@workspace/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { sendExplorerReportJob } from "@/lib/job-scheduler";
 
-async function requireReportAccess() {
-	const session = await requireAuthSession();
-	if (!hasReportAccess(session)) throw new Error("Access denied. Report generator access required.");
-}
-
 /**
- * Get all explorer reports
+ * Get all explorer reports for a brand
  */
-export const getExplorerReportsFn = createServerFn({ method: "GET" }).handler(async () => {
-	await requireReportAccess();
-
-	return db
-		.select({
-			id: explorerReports.id,
-			brandId: explorerReports.brandId,
-			brandName: explorerReports.brandName,
-			windowDays: explorerReports.windowDays,
-			language: explorerReports.language,
-			model: explorerReports.model,
-			status: explorerReports.status,
-			progress: explorerReports.progress,
-			createdAt: explorerReports.createdAt,
-			completedAt: explorerReports.completedAt,
-		})
-		.from(explorerReports)
-		.orderBy(desc(explorerReports.createdAt));
-});
-
-/**
- * Get a single explorer report by ID
- */
-export const getExplorerReportByIdFn = createServerFn({ method: "GET" })
-	.validator(z.object({ reportId: z.string() }))
+export const getExplorerReportsFn = createServerFn({ method: "GET" })
+	.validator(z.object({ brandId: z.string() }))
 	.handler(async ({ data }) => {
-		await requireReportAccess();
+		const session = await requireAuthSession();
+		await requireBrandAccess(session.user.id, data.brandId);
 
-		const rows = await db.select().from(explorerReports).where(eq(explorerReports.id, data.reportId)).limit(1);
-		if (rows.length === 0) throw new Error("Report not found");
-		const report = rows[0];
-		return { ...report, narrative: report.narrative as {} | null };
+		return db
+			.select({
+				id: explorerReports.id,
+				brandId: explorerReports.brandId,
+				brandName: explorerReports.brandName,
+				windowDays: explorerReports.windowDays,
+				language: explorerReports.language,
+				model: explorerReports.model,
+				status: explorerReports.status,
+				progress: explorerReports.progress,
+				createdAt: explorerReports.createdAt,
+				completedAt: explorerReports.completedAt,
+			})
+			.from(explorerReports)
+			.where(eq(explorerReports.brandId, data.brandId))
+			.orderBy(desc(explorerReports.createdAt));
 	});
 
 /**
@@ -63,7 +48,8 @@ export const createExplorerReportFn = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
-		await requireReportAccess();
+		const session = await requireAuthSession();
+		await requireBrandAccess(session.user.id, data.brandId);
 
 		const brand = await db.query.brands.findFirst({ where: eq(brands.id, data.brandId) });
 		if (!brand) throw new Error("Brand not found");

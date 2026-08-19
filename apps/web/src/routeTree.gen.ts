@@ -28,7 +28,6 @@ import { Route as AuthedAppIndexRouteImport } from './routes/_authed/app/index'
 import { Route as AuthedAppBrandRouteImport } from './routes/_authed/app/$brand'
 import { Route as AuthedAppNewRouteImport } from './routes/_authed/app/new'
 import { Route as AuthedReportsIndexRouteImport } from './routes/_authed/reports/index'
-import { Route as AuthedReportsExplorerRouteImport } from './routes/_authed/reports/explorer'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiExplorerReportIdRouteImport } from './routes/api/explorer/$reportId'
 import { Route as ApiManifestIndexRouteImport } from './routes/api/manifest/index'
@@ -36,6 +35,7 @@ import { Route as ApiOgIndexRouteImport } from './routes/api/og/index'
 import { Route as ApiSetupStatusIndexRouteImport } from './routes/api/setup-status/index'
 import { Route as AuthedAppBrandIndexRouteImport } from './routes/_authed/app/$brand/index'
 import { Route as AuthedAppBrandSplatRouteImport } from './routes/_authed/app/$brand/$'
+import { Route as AuthedAppBrandAiExplorerRouteImport } from './routes/_authed/app/$brand/ai-explorer'
 import { Route as AuthedAppBrandCitationsRouteImport } from './routes/_authed/app/$brand/citations'
 import { Route as AuthedAppBrandOpportunitiesRouteImport } from './routes/_authed/app/$brand/opportunities'
 import { Route as AuthedAppBrandQueryFanOutRouteImport } from './routes/_authed/app/$brand/query-fan-out'
@@ -161,11 +161,6 @@ const AuthedReportsIndexRoute = AuthedReportsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthedReportsRoute,
 } as any)
-const AuthedReportsExplorerRoute = AuthedReportsExplorerRouteImport.update({
-  id: '/explorer',
-  path: '/explorer',
-  getParentRoute: () => AuthedReportsRoute,
-} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -201,6 +196,12 @@ const AuthedAppBrandSplatRoute = AuthedAppBrandSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => AuthedAppBrandRoute,
 } as any)
+const AuthedAppBrandAiExplorerRoute =
+  AuthedAppBrandAiExplorerRouteImport.update({
+    id: '/ai-explorer',
+    path: '/ai-explorer',
+    getParentRoute: () => AuthedAppBrandRoute,
+  } as any)
 const AuthedAppBrandCitationsRoute = AuthedAppBrandCitationsRouteImport.update({
   id: '/citations',
   path: '/citations',
@@ -381,7 +382,6 @@ export interface FileRoutesByFullPath {
   '/admin/workflows': typeof AuthedAdminWorkflowsRoute
   '/app/$brand': typeof AuthedAppBrandRouteWithChildren
   '/app/new': typeof AuthedAppNewRoute
-  '/reports/explorer': typeof AuthedReportsExplorerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/admin/': typeof AuthedAdminIndexRoute
@@ -391,6 +391,7 @@ export interface FileRoutesByFullPath {
   '/api/og/': typeof ApiOgIndexRoute
   '/api/setup-status/': typeof ApiSetupStatusIndexRoute
   '/app/$brand/$': typeof AuthedAppBrandSplatRoute
+  '/app/$brand/ai-explorer': typeof AuthedAppBrandAiExplorerRoute
   '/app/$brand/citations': typeof AuthedAppBrandCitationsRoute
   '/app/$brand/opportunities': typeof AuthedAppBrandOpportunitiesRoute
   '/app/$brand/query-fan-out': typeof AuthedAppBrandQueryFanOutRoute
@@ -434,7 +435,6 @@ export interface FileRoutesByTo {
   '/admin/tools': typeof AuthedAdminToolsRoute
   '/admin/workflows': typeof AuthedAdminWorkflowsRoute
   '/app/new': typeof AuthedAppNewRoute
-  '/reports/explorer': typeof AuthedReportsExplorerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/admin': typeof AuthedAdminIndexRoute
@@ -444,6 +444,7 @@ export interface FileRoutesByTo {
   '/api/og': typeof ApiOgIndexRoute
   '/api/setup-status': typeof ApiSetupStatusIndexRoute
   '/app/$brand/$': typeof AuthedAppBrandSplatRoute
+  '/app/$brand/ai-explorer': typeof AuthedAppBrandAiExplorerRoute
   '/app/$brand/citations': typeof AuthedAppBrandCitationsRoute
   '/app/$brand/opportunities': typeof AuthedAppBrandOpportunitiesRoute
   '/app/$brand/query-fan-out': typeof AuthedAppBrandQueryFanOutRoute
@@ -493,7 +494,6 @@ export interface FileRoutesById {
   '/_authed/admin/workflows': typeof AuthedAdminWorkflowsRoute
   '/_authed/app/$brand': typeof AuthedAppBrandRouteWithChildren
   '/_authed/app/new': typeof AuthedAppNewRoute
-  '/_authed/reports/explorer': typeof AuthedReportsExplorerRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/_authed/admin/': typeof AuthedAdminIndexRoute
@@ -503,6 +503,7 @@ export interface FileRoutesById {
   '/api/og/': typeof ApiOgIndexRoute
   '/api/setup-status/': typeof ApiSetupStatusIndexRoute
   '/_authed/app/$brand/$': typeof AuthedAppBrandSplatRoute
+  '/_authed/app/$brand/ai-explorer': typeof AuthedAppBrandAiExplorerRoute
   '/_authed/app/$brand/citations': typeof AuthedAppBrandCitationsRoute
   '/_authed/app/$brand/opportunities': typeof AuthedAppBrandOpportunitiesRoute
   '/_authed/app/$brand/query-fan-out': typeof AuthedAppBrandQueryFanOutRoute
@@ -552,7 +553,6 @@ export interface FileRouteTypes {
     | '/admin/workflows'
     | '/app/$brand'
     | '/app/new'
-    | '/reports/explorer'
     | '/api/auth/$'
     | '/api/explorer/$reportId'
     | '/admin/'
@@ -562,6 +562,7 @@ export interface FileRouteTypes {
     | '/api/og/'
     | '/api/setup-status/'
     | '/app/$brand/$'
+    | '/app/$brand/ai-explorer'
     | '/app/$brand/citations'
     | '/app/$brand/opportunities'
     | '/app/$brand/query-fan-out'
@@ -605,7 +606,6 @@ export interface FileRouteTypes {
     | '/admin/tools'
     | '/admin/workflows'
     | '/app/new'
-    | '/reports/explorer'
     | '/api/auth/$'
     | '/api/explorer/$reportId'
     | '/admin'
@@ -615,6 +615,7 @@ export interface FileRouteTypes {
     | '/api/og'
     | '/api/setup-status'
     | '/app/$brand/$'
+    | '/app/$brand/ai-explorer'
     | '/app/$brand/citations'
     | '/app/$brand/opportunities'
     | '/app/$brand/query-fan-out'
@@ -663,7 +664,6 @@ export interface FileRouteTypes {
     | '/_authed/admin/workflows'
     | '/_authed/app/$brand'
     | '/_authed/app/new'
-    | '/_authed/reports/explorer'
     | '/api/auth/$'
     | '/api/explorer/$reportId'
     | '/_authed/admin/'
@@ -673,6 +673,7 @@ export interface FileRouteTypes {
     | '/api/og/'
     | '/api/setup-status/'
     | '/_authed/app/$brand/$'
+    | '/_authed/app/$brand/ai-explorer'
     | '/_authed/app/$brand/citations'
     | '/_authed/app/$brand/opportunities'
     | '/_authed/app/$brand/query-fan-out'
@@ -867,13 +868,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedReportsIndexRouteImport
       parentRoute: typeof AuthedReportsRoute
     }
-    '/_authed/reports/explorer': {
-      id: '/_authed/reports/explorer'
-      path: '/explorer'
-      fullPath: '/reports/explorer'
-      preLoaderRoute: typeof AuthedReportsExplorerRouteImport
-      parentRoute: typeof AuthedReportsRoute
-    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -921,6 +915,13 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/app/$brand/$'
       preLoaderRoute: typeof AuthedAppBrandSplatRouteImport
+      parentRoute: typeof AuthedAppBrandRoute
+    }
+    '/_authed/app/$brand/ai-explorer': {
+      id: '/_authed/app/$brand/ai-explorer'
+      path: '/ai-explorer'
+      fullPath: '/app/$brand/ai-explorer'
+      preLoaderRoute: typeof AuthedAppBrandAiExplorerRouteImport
       parentRoute: typeof AuthedAppBrandRoute
     }
     '/_authed/app/$brand/citations': {
@@ -1147,6 +1148,7 @@ const AuthedAdminRouteWithChildren = AuthedAdminRoute._addFileChildren(
 
 interface AuthedAppBrandRouteChildren {
   AuthedAppBrandSplatRoute: typeof AuthedAppBrandSplatRoute
+  AuthedAppBrandAiExplorerRoute: typeof AuthedAppBrandAiExplorerRoute
   AuthedAppBrandCitationsRoute: typeof AuthedAppBrandCitationsRoute
   AuthedAppBrandOpportunitiesRoute: typeof AuthedAppBrandOpportunitiesRoute
   AuthedAppBrandQueryFanOutRoute: typeof AuthedAppBrandQueryFanOutRoute
@@ -1167,6 +1169,7 @@ interface AuthedAppBrandRouteChildren {
 
 const AuthedAppBrandRouteChildren: AuthedAppBrandRouteChildren = {
   AuthedAppBrandSplatRoute: AuthedAppBrandSplatRoute,
+  AuthedAppBrandAiExplorerRoute: AuthedAppBrandAiExplorerRoute,
   AuthedAppBrandCitationsRoute: AuthedAppBrandCitationsRoute,
   AuthedAppBrandOpportunitiesRoute: AuthedAppBrandOpportunitiesRoute,
   AuthedAppBrandQueryFanOutRoute: AuthedAppBrandQueryFanOutRoute,
@@ -1207,13 +1210,11 @@ const AuthedAppRouteWithChildren = AuthedAppRoute._addFileChildren(
 )
 
 interface AuthedReportsRouteChildren {
-  AuthedReportsExplorerRoute: typeof AuthedReportsExplorerRoute
   AuthedReportsIndexRoute: typeof AuthedReportsIndexRoute
   AuthedReportsRenderReportIdRoute: typeof AuthedReportsRenderReportIdRoute
 }
 
 const AuthedReportsRouteChildren: AuthedReportsRouteChildren = {
-  AuthedReportsExplorerRoute: AuthedReportsExplorerRoute,
   AuthedReportsIndexRoute: AuthedReportsIndexRoute,
   AuthedReportsRenderReportIdRoute: AuthedReportsRenderReportIdRoute,
 }

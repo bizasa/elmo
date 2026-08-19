@@ -6,25 +6,29 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "@workspace/lib/db/db";
-import { explorerReports } from "@workspace/lib/db/schema";
+import { brands, explorerReports } from "@workspace/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { requireAuthSession, hasReportAccess } from "@/lib/auth/helpers";
+import { requireAuthSession, checkOrgAccess } from "@/lib/auth/helpers";
 
 export const Route = createFileRoute("/api/explorer/$reportId")({
 	server: {
 		handlers: {
 			GET: async ({ params }: { params: { reportId: string } }) => {
 				const session = await requireAuthSession();
-				if (!hasReportAccess(session)) return new Response("Forbidden", { status: 403 });
 
 				const rows = await db
-					.select({ html: explorerReports.html, status: explorerReports.status })
+					.select({ html: explorerReports.html, status: explorerReports.status, brandId: explorerReports.brandId })
 					.from(explorerReports)
 					.where(eq(explorerReports.id, params.reportId))
 					.limit(1);
 
 				const row = rows[0];
 				if (!row) return new Response("Not found", { status: 404 });
+
+				const brand = await db.query.brands.findFirst({ where: eq(brands.id, row.brandId) });
+				if (!brand || !(await checkOrgAccess(session.user.id, brand.organizationId))) {
+					return new Response("Forbidden", { status: 403 });
+				}
 
 				if (row.status !== "completed" || !row.html) {
 					return new Response(
