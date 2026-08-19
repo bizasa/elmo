@@ -4,7 +4,7 @@ import { assembleExplorerData, type RunInput } from "@workspace/lib/explorer/bui
 import { buildNarrativeMetrics } from "@workspace/lib/explorer/metrics";
 import { renderExplorerHtml } from "@workspace/lib/explorer/render-html";
 import { generateNarrative } from "@workspace/lib/narrative/generate-narrative";
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 
 export interface ExplorerReportJobData {
 	reportId: string;
@@ -39,8 +39,12 @@ export async function processExplorerReportJob(ctx: ExplorerReportJobContext): P
 		const brandCompetitors = await db.query.competitors.findMany({ where: eq(competitors.brandId, brandId) });
 
 		const windowStart = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
-		const runRows = await db
+		// Pull run metadata WITHOUT raw_output first. Loading every run's raw_output
+		// at once OOMs large brands (hundreds of MB of stored answers), and we only
+		// render the newest few per (prompt, model) anyway.
+		const meta = await db
 			.select({
+				id: promptRuns.id,
 				promptId: promptRuns.promptId,
 				model: promptRuns.model,
 				provider: promptRuns.provider,
@@ -48,13 +52,47 @@ export async function processExplorerReportJob(ctx: ExplorerReportJobContext): P
 				brandPosition: promptRuns.brandPosition,
 				competitorsMentioned: promptRuns.competitorsMentioned,
 				createdAt: promptRuns.createdAt,
-				rawOutput: promptRuns.rawOutput,
 			})
 			.from(promptRuns)
 			.where(and(eq(promptRuns.brandId, brandId), gte(promptRuns.createdAt, windowStart)));
+
+		// Sample the newest N runs per (prompt, model) — the same set the report renders.
+		const groups = new Map<string, typeof meta>();
+		for (const r of meta) {
+			const key = `${r.promptId}::${r.model}`;
+			const arr = groups.get(key) ?? [];
+			arr.push(r);
+			groups.set(key, arr);
+		}
+		const selected: typeof meta = [];
+		for (const arr of groups.values()) {
+			arr.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+			selected.push(...arr.slice(0, PER_PROMPT_MODEL_LIMIT));
+		}
+
+		// Fetch raw_output only for the sampled runs, batched to keep the IN list sane.
+		const rawById = new Map<string, unknown>();
+		for (let i = 0; i < selected.length; i += 500) {
+			const batchIds = selected.slice(i, i + 500).map((s) => s.id);
+			const rows = await db
+				.select({ id: promptRuns.id, rawOutput: promptRuns.rawOutput })
+				.from(promptRuns)
+				.where(inArray(promptRuns.id, batchIds));
+			for (const row of rows) rawById.set(row.id, row.rawOutput);
+		}
+		ctx.log(`Sampled ${selected.length} of ${meta.length} runs in window`);
 		await ctx.updateProgress(35);
 
-		const runs: RunInput[] = runRows.map((r) => ({ ...r }));
+		const runs: RunInput[] = selected.map((r) => ({
+			promptId: r.promptId,
+			model: r.model,
+			provider: r.provider,
+			brandMentioned: r.brandMentioned,
+			brandPosition: r.brandPosition,
+			competitorsMentioned: r.competitorsMentioned,
+			createdAt: r.createdAt,
+			rawOutput: rawById.get(r.id),
+		}));
 		const data = assembleExplorerData({
 			brand: { name: brand.name, aliases: brand.aliases, website: brand.website },
 			prompts: brandPrompts.map((p) => ({ id: p.id, value: p.value, tags: p.tags })),
