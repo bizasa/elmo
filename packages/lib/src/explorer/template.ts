@@ -73,12 +73,81 @@ mark.hl-v{background:var(--hl-v)} mark.hl-c{background:var(--hl-c)} mark.hl-a{ba
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .sw{width:13px;height:13px;border-radius:3px;display:inline-block}
 footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);color:var(--faint);font-size:12px;font-family:var(--mono);line-height:1.8}
-#narrative{margin:14px 0 22px;padding:16px 18px;border:1px solid var(--line);border-radius:13px;background:var(--raise)}
-#narrative h2{font-size:15px;margin:0 0 8px} #narrative h3{font-size:12.5px;margin:14px 0 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-#narrative ul{margin:4px 0 0;padding-left:18px} #narrative li{margin:2px 0;font-size:14px} #narrative p{margin:0;font-size:14px}
+
+/* tab bar */
+.tabs{display:flex;gap:8px;margin-bottom:18px}
+.tabbtn{font-family:var(--mono);font-size:13px;font-weight:600;padding:9px 18px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--muted);cursor:pointer}
+.tabbtn:hover{border-color:var(--accent)}
+.tabbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tabpane[hidden]{display:none}
+
+/* report tab */
+.report-pane header .eyebrow{margin-bottom:2px}
+.report-pane h1{font-size:clamp(1.7rem,4vw,2.6rem);line-height:1.06;letter-spacing:-.025em;font-weight:720;margin:.2em 0 .25em;text-wrap:balance}
+.report-pane .lede{font-size:clamp(.95rem,2vw,1.1rem);color:var(--muted);max-width:60ch;margin:0}
+.report-pane .meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;font-family:var(--mono);font-size:12.5px;color:var(--faint)}
+.report-pane .meta b{color:var(--ink);font-weight:600}
+.report-pane section{margin-top:clamp(32px,6vw,60px)}
+.report-pane .sec-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:18px}
+.report-pane .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600}
+.report-pane h2{font-size:clamp(1.2rem,2.6vw,1.5rem);letter-spacing:-.02em;font-weight:680;margin:0;text-wrap:balance}
+.report-pane p.note{color:var(--muted);max-width:66ch;font-size:15px;margin:0 0 16px}
+/* metric cards */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-top:22px}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px}
+.metric .k{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint)}
+.metric .v{font-size:2.1rem;font-weight:720;letter-spacing:-.03em;line-height:1.1;margin-top:6px}
+.metric .s{font-size:13px;color:var(--muted);margin-top:2px}
+.v.good{color:var(--good)} .v.mid{color:var(--mid)} .v.weak{color:var(--weak)} .v.na{color:var(--faint)}
+/* tables (shared with report tab) */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.tablewrap table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+.tablewrap th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);
+  text-align:left;font-weight:600;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface)}
+.tablewrap td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tablewrap tr:last-child td{border-bottom:none}
+.tablewrap tbody tr:hover{background:var(--raise)}
+.tablewrap td.num,.tablewrap th.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.tablewrap td.ctr,.tablewrap th.ctr{text-align:center}
+.tablewrap td.q{color:var(--ink);max-width:420px}
+.visc{min-width:190px}
+.visnum{font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;display:inline-block;width:52px}
+.bar{display:inline-block;vertical-align:middle;width:calc(100% - 60px);max-width:150px;height:7px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar-fill{display:block;height:100%;border-radius:99px}
+.t-good{background:var(--good)} .t-mid{background:var(--mid)} .t-weak{background:var(--weak)}
+#pane-report .chip{font-family:var(--mono);font-size:12px;font-weight:600;padding:3px 8px;border-radius:7px;white-space:nowrap;font-variant-numeric:tabular-nums;cursor:default;border:none}
+#pane-report .chip.good{color:var(--good);background:var(--good-bg)} #pane-report .chip.mid{color:var(--mid);background:var(--mid-bg)}
+#pane-report .chip.weak{color:var(--weak);background:var(--weak-bg)} #pane-report .chip.na{color:var(--faint);background:var(--line)}
+.tag.fn{background:var(--line);color:var(--muted)}
+/* rowbars */
+.rowbars{display:grid;gap:14px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:26px}
+.rowbar{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+.rowbar-head{display:flex;align-items:baseline;gap:10px}
+.rl{font-weight:640} .rv{margin-left:auto;font-weight:720;font-size:1.15rem;font-variant-numeric:tabular-nums}
+.rowbar .bar{display:block;width:100%;max-width:none;height:9px;margin:11px 0 9px}
+.rowbar-foot{display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+.subhead{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:26px 0 14px;font-weight:600}
+/* competitors */
+.compcols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.compcol h4{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px;font-weight:600}
+.compcol.untracked h4{color:var(--weak)} .compcol.tracked h4{color:var(--good)}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:99px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+/* recommendations */
+.recs{display:grid;gap:14px;counter-reset:r}
+.rec{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px 18px 58px;position:relative}
+.rec::before{counter-increment:r;content:counter(r);position:absolute;left:18px;top:18px;width:26px;height:26px;border-radius:8px;
+  background:var(--accent);color:#fff;font-family:var(--mono);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.rec h3{margin:0 0 5px;font-size:1.08rem;letter-spacing:-.01em} .rec p{margin:0;color:var(--muted);font-size:14.5px;max-width:74ch}
+@media (max-width:560px){.report-pane .sec-head p{display:none}.tablewrap td.q{max-width:200px}}
 </style>
 
 <div class="wrap">
+  <div class="tabs"><button class="tabbtn active" data-tab="report">📊 Báo cáo</button><button class="tabbtn" data-tab="explorer">🔍 Explorer</button></div>
+  <div class="tabpane report-pane" id="pane-report">__REPORT_HTML__</div>
+  <div class="tabpane" id="pane-explorer" hidden>
   <div class="eyebrow">Elmo · __BRAND_NAME__ · Trình khám phá câu trả lời AI</div>
   <h1>Các LLM nói gì về __BRAND_NAME__ — tra cứu theo ngữ cảnh</h1>
   <p class="lede">Lọc theo model, sản phẩm, tầng phễu, có/không nhắc __BRAND_NAME__, hoặc theo đối thủ — rồi đọc thẳng đoạn văn AI sinh ra (__BRAND_NAME__ tô xanh, đối thủ tô vàng). Dùng để đối chiếu chéo từng trường hợp cụ thể.</p>
@@ -95,7 +164,6 @@ footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);color:v
   </div>
 
   <div class="statbar" id="stat"></div>
-  <div id="narrative">__NARRATIVE_HTML__</div>
   <div class="legend">
     <span><i class="sw" style="background:var(--hl-v)"></i>__BRAND_NAME__</span>
     <span><i class="sw" style="background:var(--hl-c)"></i>Đối thủ</span>
@@ -107,6 +175,7 @@ footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);color:v
   <button class="loadmore" id="loadmore" hidden>Hiện thêm</button>
 
   <footer id="foot"></footer>
+  </div>
 </div>
 
 <script>const DATA = __DATA__;
@@ -207,5 +276,14 @@ function render(){
 
 el("foot").innerHTML = __FOOTER_HTML__;
 render();
+</script>
+<script>
+document.querySelectorAll(".tabbtn").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabbtn").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  const t=b.dataset.tab;
+  document.getElementById("pane-report").hidden = t!=="report";
+  document.getElementById("pane-explorer").hidden = t!=="explorer";
+});
 </script>
 `;

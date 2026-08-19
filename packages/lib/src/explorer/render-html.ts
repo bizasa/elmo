@@ -1,5 +1,6 @@
+import { renderReportBody } from "./report-html";
 import { EXPLORER_TEMPLATE } from "./template";
-import type { ExplorerData, Narrative } from "./types";
+import type { ExplorerData, Narrative, ReportMetrics } from "./types";
 
 function esc(s: string): string {
 	return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
@@ -23,17 +24,13 @@ function scriptJson(value: unknown): string {
 		.replace(new RegExp(PARAGRAPH_SEPARATOR, "g"), "\\u2029");
 }
 
-function narrativeHtml(n: Narrative): string {
-	const recs = n.recommendations.map((r) => `<li><b>${esc(r.title)}</b> — ${esc(r.body)}</li>`).join("");
-	return `<h2>${esc("Tóm tắt")}</h2><p>${esc(n.summary)}</p>` + `<h3>${esc("Khuyến nghị")}</h3><ul>${recs}</ul>`;
-}
-
 export interface RenderArgs {
 	data: ExplorerData;
 	narrative: Narrative | null;
 	brandName: string;
 	windowDays: number;
 	sampleNote: string;
+	reportMetrics: ReportMetrics;
 }
 
 /** Inject the deterministic data + narrative into the explorer template.
@@ -41,13 +38,13 @@ export interface RenderArgs {
  * inserted literally (String.replace treats $-patterns specially only for
  * string replacements). */
 export function renderExplorerHtml(args: RenderArgs): string {
-	const { data, narrative, brandName, windowDays, sampleNote } = args;
+	const { data, narrative, brandName, windowDays, sampleNote, reportMetrics } = args;
 	const footer = esc(`Nguồn: Elmo · brand ${brandName} · ${windowDays} ngày gần nhất. ${sampleNote}`);
 	return EXPLORER_TEMPLATE.replace("__DATA__", () => scriptJson(data.records))
 		.replace("__CONFIG__", () => scriptJson(data.config))
 		.replace("__BRAND_LABEL__", () => scriptJson(brandName))
 		.replace("__FOOTER_HTML__", () => scriptJson(footer))
-		.replace("__NARRATIVE_HTML__", () => (narrative ? narrativeHtml(narrative) : ""))
+		.replace("__REPORT_HTML__", () => renderReportBody(reportMetrics, narrative, { brandName, windowDays }))
 		// Header/legend brand name appears in several spots; escape once, replace all.
 		.replace(/__BRAND_NAME__/g, () => esc(brandName));
 }

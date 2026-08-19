@@ -1,8 +1,8 @@
 import { db } from "@workspace/lib/db/db";
 import { brands, competitors, explorerReports, promptRuns, prompts } from "@workspace/lib/db/schema";
 import { assembleExplorerData, type RunInput } from "@workspace/lib/explorer/build-data";
-import { buildNarrativeMetrics } from "@workspace/lib/explorer/metrics";
 import { renderExplorerHtml } from "@workspace/lib/explorer/render-html";
+import { buildReportMetrics } from "@workspace/lib/explorer/report-metrics";
 import { generateNarrative } from "@workspace/lib/narrative/generate-narrative";
 import { and, eq, gte, inArray } from "drizzle-orm";
 
@@ -103,12 +103,19 @@ export async function processExplorerReportJob(ctx: ExplorerReportJobContext): P
 		ctx.log(`Assembled ${data.records.length} answer records`);
 		await ctx.updateProgress(55);
 
-		const metrics = buildNarrativeMetrics(data, brand.name, windowDays);
+		const reportMetrics = buildReportMetrics(data, brand.name, windowDays);
+
+		const sampleExcerpts = data.records
+			.filter((r) => r.v === true)
+			.map((r) => r.x)
+			.filter((x) => x.length > 0)
+			.slice(0, 8)
+			.map((x) => x.slice(0, 500));
 
 		let narrative = null;
 		let model: string | null = null;
 		try {
-			const result = await generateNarrative(metrics, language);
+			const result = await generateNarrative(reportMetrics, sampleExcerpts, language);
 			narrative = result.narrative;
 			model = result.model;
 			ctx.log(`Narrative written by ${model}`);
@@ -118,7 +125,7 @@ export async function processExplorerReportJob(ctx: ExplorerReportJobContext): P
 		await ctx.updateProgress(85);
 
 		const sampleNote = `Mẫu: tối đa ${PER_PROMPT_MODEL_LIMIT} câu trả lời mới nhất / (prompt × model) = ${data.records.length} lượt.`;
-		const html = renderExplorerHtml({ data, narrative, brandName: brand.name, windowDays, sampleNote });
+		const html = renderExplorerHtml({ data, narrative, brandName: brand.name, windowDays, sampleNote, reportMetrics });
 
 		await db
 			.update(explorerReports)
