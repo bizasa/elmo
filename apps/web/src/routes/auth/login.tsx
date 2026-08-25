@@ -5,7 +5,7 @@
  * Whitelabel mode: auto-redirects to Auth0 SSO (no form shown).
  */
 
-import { IconBrandGoogle, IconInfoCircle } from "@tabler/icons-react";
+import { IconBrandGoogle, IconInfoCircle, IconLock } from "@tabler/icons-react";
 import { createFileRoute, Link, useNavigate, useRouteContext } from "@tanstack/react-router";
 import type { ClientConfig } from "@workspace/config/types";
 import { authClient } from "@workspace/lib/auth/client";
@@ -31,6 +31,7 @@ function LoginPage() {
 	const context = useRouteContext({ strict: false }) as { clientConfig?: ClientConfig };
 	const mode = context.clientConfig?.mode;
 	const canRegister = context.clientConfig?.canRegister ?? false;
+	const cfAccessSSO = context.clientConfig?.ssoLogin ?? false;
 
 	if (mode === "whitelabel") {
 		return <SSOLogin returnTo={returnTo} />;
@@ -42,6 +43,7 @@ function LoginPage() {
 			isDemo={mode === "demo"}
 			isCloud={mode === "cloud"}
 			canRegister={canRegister}
+			cfAccessSSO={cfAccessSSO}
 		/>
 	);
 }
@@ -92,11 +94,13 @@ export function EmailPasswordLogin({
 	isDemo,
 	isCloud,
 	canRegister,
+	cfAccessSSO,
 }: {
 	returnTo?: string;
 	isDemo?: boolean;
 	isCloud?: boolean;
 	canRegister?: boolean;
+	cfAccessSSO?: boolean;
 }) {
 	const navigate = useNavigate();
 	const [email, setEmail] = useState(isDemo ? "demo@elmohq.com" : "");
@@ -132,8 +136,36 @@ export function EmailPasswordLogin({
 		}
 	}
 
+	async function handleCfAccessSSO() {
+		setError(null);
+		try {
+			const result = await authClient.signIn.sso({
+				providerId: "cf-access",
+				callbackURL: safeReturnTo(returnTo),
+			});
+			if (result.error) {
+				setError(result.error.message ?? "Failed to start sign-in");
+			}
+		} catch {
+			setError("Something went wrong. Please try again.");
+		}
+	}
+
 	return (
 		<FullPageCard title="Sign in" subtitle={isDemo ? undefined : "Enter your email and password to continue"}>
+			{cfAccessSSO && (
+				<div className="space-y-4 w-full pb-4">
+					<Button type="button" variant="outline" className="w-full" onClick={handleCfAccessSSO}>
+						<IconLock className="size-4" />
+						Sign in with Cloudflare Access
+					</Button>
+					<div className="flex items-center gap-3">
+						<Separator className="flex-1" />
+						<span className="text-xs text-muted-foreground">or</span>
+						<Separator className="flex-1" />
+					</div>
+				</div>
+			)}
 			{isCloud && (
 				<div className="space-y-4 w-full pb-4">
 					<Button

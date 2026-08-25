@@ -134,6 +134,13 @@ export interface ClientConfig {
 	canRegister: boolean;
 	/** Whether any user account exists. */
 	hasUsers: boolean;
+	/**
+	 * Whether a passwordless SSO provider is configured for the login page
+	 * (local mode with Cloudflare Access OIDC). When true, the login page
+	 * offers a "sign in with Cloudflare Access" button alongside the
+	 * email/password form.
+	 */
+	ssoLogin?: boolean;
 }
 
 // ============================================================================

@@ -21,22 +21,69 @@ import { getWhitelabelAuthOptions } from "@workspace/whitelabel/auth-hooks";
  * fire regardless of whether signup is triggered from our UI or a curl.
  */
 function getLocalAuthOptions(): CreateAuthOptions {
-	return {
+	const teamDomain = process.env.CF_ACCESS_TEAM_DOMAIN;
+	const clientId = process.env.CF_ACCESS_OIDC_CLIENT_ID;
+	const clientSecret = process.env.CF_ACCESS_OIDC_CLIENT_SECRET;
+	const cfAccessEnabled = Boolean(teamDomain && clientId && clientSecret);
+
+	const options: CreateAuthOptions = {
 		databaseHooks: {
 			user: {
 				create: {
-					before: async () => {
-						if ((await countUsers()) > 0) {
+					// The bootstrap guard applies only to the interactive
+					// email/password sign-up endpoint. SSO (path /sso/callback/...)
+					// must stay free to JIT-provision additional users beyond the
+					// first, so passwordless staff logins can create their accounts.
+					before: async (_user, context) => {
+						const path = (context as { path?: string } | undefined)?.path ?? "";
+						if (path.includes("/sign-up") && (await countUsers()) > 0) {
 							throw new Error("This instance is already bootstrapped. Sign in with the existing account instead.");
 						}
 					},
-					after: async (user) => {
-						await provisionLocalOrg({ userId: user.id });
+					// Only the first email/password signup gets the local org +
+					// admin membership. SSO-provisioned users get no membership
+					// here — their brand access is granted explicitly via member
+					// rows, so a newly logged-in staffer sees nothing until scoped.
+					after: async (user, context) => {
+						const path = (context as { path?: string } | undefined)?.path ?? "";
+						if (path.includes("/sign-up")) {
+							await provisionLocalOrg({ userId: user.id });
+						}
 					},
 				},
 			},
 		},
 	};
+
+	// Cloudflare Access as an OIDC identity provider: staff already pass the CF
+	// Access gate in front of the app, so this reuses that verified identity for
+	// passwordless login (no second OTP for users with a live CF Access session).
+	if (cfAccessEnabled) {
+		const base = `https://${teamDomain}/cdn-cgi/access/sso/oidc/${clientId}`;
+		options.sso = {
+			defaultSSO: [
+				{
+					providerId: "cf-access",
+					domain: teamDomain as string,
+					oidcConfig: {
+						clientId: clientId as string,
+						clientSecret: clientSecret as string,
+						issuer: base,
+						discoveryEndpoint: `${base}/.well-known/openid-configuration`,
+						authorizationEndpoint: `${base}/authorization`,
+						tokenEndpoint: `${base}/token`,
+						userInfoEndpoint: `${base}/userinfo`,
+						jwksEndpoint: `${base}/jwks`,
+						tokenEndpointAuthentication: "client_secret_post",
+						pkce: true,
+						scopes: ["openid", "email", "profile"],
+					},
+				},
+			],
+		};
+	}
+
+	return options;
 }
 
 function getDeploymentAuthOptions(): CreateAuthOptions | undefined {

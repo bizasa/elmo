@@ -52,6 +52,10 @@ export const getClientConfig = createServerFn({ method: "GET" }).handler(async (
 		defaultDelayHours: getDefaultDelayHours(),
 		canRegister,
 		hasUsers,
+		// Passwordless SSO (Cloudflare Access OIDC) is available when its client
+		// id is configured. Local mode wires this provider into better-auth; the
+		// login page reads this flag to show the SSO button.
+		ssoLogin: Boolean(process.env.CF_ACCESS_OIDC_CLIENT_ID),
 	};
 });
 

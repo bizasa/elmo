@@ -66,7 +66,10 @@
     "VILAO_GATEWAY_URL",
     "CF_AIG_TOKEN",
     "VILAO_MODEL",
-    "VILAO_MODEL_CHAIN"
+    "VILAO_MODEL_CHAIN",
+    "CF_ACCESS_TEAM_DOMAIN",
+    "CF_ACCESS_OIDC_CLIENT_ID",
+    "CF_ACCESS_OIDC_CLIENT_SECRET"
   ],
   "tasks": {
     "//#format": {

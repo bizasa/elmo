@@ -88,6 +88,9 @@ declare global {
 			readonly CF_AIG_TOKEN?: string;
 			readonly VILAO_MODEL?: string;
 			readonly VILAO_MODEL_CHAIN?: string;
+			readonly CF_ACCESS_TEAM_DOMAIN?: string;
+			readonly CF_ACCESS_OIDC_CLIENT_ID?: string;
+			readonly CF_ACCESS_OIDC_CLIENT_SECRET?: string;
 		}
 	}
 }

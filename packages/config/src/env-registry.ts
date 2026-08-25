@@ -438,6 +438,27 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 		description:
 			"Sender address for transactional email, in the form: Elmo <notifications@updates.example.com>. The domain must be verified in Resend.",
 	},
+	// Cloudflare Access OIDC — passwordless SSO login for local deployments that
+	// sit behind Cloudflare Access. All three must be set to enable the provider;
+	// unset leaves email/password as the only login method.
+	{
+		name: "CF_ACCESS_TEAM_DOMAIN",
+		scope: "server",
+		requiredBy: "optional",
+		description: "Cloudflare Access team domain, e.g. your-team.cloudflareaccess.com. Enables the Cloudflare Access OIDC login provider when set with the client id/secret.",
+	},
+	{
+		name: "CF_ACCESS_OIDC_CLIENT_ID",
+		scope: "server",
+		requiredBy: "optional",
+		description: "Client ID of the Cloudflare Access SaaS (OIDC) application used for passwordless SSO login.",
+	},
+	{
+		name: "CF_ACCESS_OIDC_CLIENT_SECRET",
+		scope: "server",
+		requiredBy: "optional",
+		description: "Client secret of the Cloudflare Access SaaS (OIDC) application used for passwordless SSO login.",
+	},
 	{
 		name: "VILAO_API_KEY",
 		scope: "server",
