@@ -38,6 +38,13 @@ export interface CreateAuthOptions {
 	sendResetPassword?: NonNullable<BetterAuthOptions["emailAndPassword"]>["sendResetPassword"];
 	/** OAuth providers (e.g. Google in cloud). */
 	socialProviders?: BetterAuthOptions["socialProviders"];
+	/**
+	 * SSO provider ids trusted to link onto an existing user matched by email,
+	 * without requiring the incoming email to be independently verified. Use for
+	 * providers that authenticate identity upstream (e.g. Cloudflare Access),
+	 * so a pre-provisioned user can sign in via SSO the first time.
+	 */
+	trustedSSOProviders?: string[];
 	/** Options for the organization plugin (e.g. sendInvitationEmail in cloud). */
 	organizationOptions?: Parameters<typeof organization>[0];
 	/**
@@ -88,6 +95,14 @@ export function createAuth(options?: CreateAuthOptions) {
 		},
 		...(options?.emailVerification && { emailVerification: options.emailVerification }),
 		...(options?.socialProviders && { socialProviders: options.socialProviders }),
+		...(options?.trustedSSOProviders?.length && {
+			account: {
+				accountLinking: {
+					enabled: true,
+					trustedProviders: options.trustedSSOProviders,
+				},
+			},
+		}),
 
 		user: {
 			additionalFields: {

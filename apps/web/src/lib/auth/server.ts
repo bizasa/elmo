@@ -60,6 +60,11 @@ function getLocalAuthOptions(): CreateAuthOptions {
 	// passwordless login (no second OTP for users with a live CF Access session).
 	if (cfAccessEnabled) {
 		const base = `https://${teamDomain}/cdn-cgi/access/sso/oidc/${clientId}`;
+		// Trust Cloudflare Access to link onto a pre-provisioned user by email:
+		// CF Access has already verified the identity upstream, so the first SSO
+		// sign-in links to the existing (passwordless) user instead of being
+		// refused as a potential account takeover.
+		options.trustedSSOProviders = ["cf-access"];
 		options.sso = {
 			// Only pre-provisioned users may sign in. An unknown email is rejected
 			// at the callback (redirected back to the login page with an error)
