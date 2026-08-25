@@ -61,6 +61,11 @@ function getLocalAuthOptions(): CreateAuthOptions {
 	if (cfAccessEnabled) {
 		const base = `https://${teamDomain}/cdn-cgi/access/sso/oidc/${clientId}`;
 		options.sso = {
+			// Only pre-provisioned users may sign in. An unknown email is rejected
+			// at the callback (redirected back to the login page with an error)
+			// instead of silently creating an empty account that lands the user
+			// inside the app with no brand access — which reads as a broken login.
+			disableImplicitSignUp: true,
 			defaultSSO: [
 				{
 					providerId: "cf-access",

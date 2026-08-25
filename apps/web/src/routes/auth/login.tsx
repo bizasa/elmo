@@ -22,12 +22,30 @@ import { safeReturnTo } from "@/lib/return-to";
 export const Route = createFileRoute("/auth/login")({
 	validateSearch: z.object({
 		returnTo: z.string().optional(),
+		// Populated by better-auth when an SSO sign-in is rejected (e.g. an
+		// unprovisioned email under disableImplicitSignUp).
+		error: z.string().optional(),
+		error_description: z.string().optional(),
 	}),
 	component: LoginPage,
 });
 
+/**
+ * Maps a better-auth SSO error code (from the login page's `error` query param)
+ * to a user-facing message. The common case is an unprovisioned email being
+ * rejected because implicit sign-up is disabled — the account must be granted
+ * access by an admin first.
+ */
+function ssoErrorMessage(code: string): string {
+	const authorizationCodes = new Set(["signup_disabled", "user_not_found", "account_not_found"]);
+	if (authorizationCodes.has(code.toLowerCase())) {
+		return "This account isn't authorized to access Elmo. Ask your administrator to grant access, then sign in again.";
+	}
+	return "Sign-in failed. If this keeps happening, contact your administrator.";
+}
+
 function LoginPage() {
-	const { returnTo } = Route.useSearch();
+	const { returnTo, error } = Route.useSearch();
 	const context = useRouteContext({ strict: false }) as { clientConfig?: ClientConfig };
 	const mode = context.clientConfig?.mode;
 	const canRegister = context.clientConfig?.canRegister ?? false;
@@ -44,6 +62,7 @@ function LoginPage() {
 			isCloud={mode === "cloud"}
 			canRegister={canRegister}
 			cfAccessSSO={cfAccessSSO}
+			initialError={error ? ssoErrorMessage(error) : undefined}
 		/>
 	);
 }
@@ -95,17 +114,19 @@ export function EmailPasswordLogin({
 	isCloud,
 	canRegister,
 	cfAccessSSO,
+	initialError,
 }: {
 	returnTo?: string;
 	isDemo?: boolean;
 	isCloud?: boolean;
 	canRegister?: boolean;
 	cfAccessSSO?: boolean;
+	initialError?: string;
 }) {
 	const navigate = useNavigate();
 	const [email, setEmail] = useState(isDemo ? "demo@elmohq.com" : "");
 	const [password, setPassword] = useState(isDemo ? "demo" : "");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(initialError ?? null);
 	const [loading, setLoading] = useState(false);
 
 	async function handleSubmit(e: React.FormEvent) {
@@ -142,6 +163,10 @@ export function EmailPasswordLogin({
 			const result = await authClient.signIn.sso({
 				providerId: "cf-access",
 				callbackURL: safeReturnTo(returnTo),
+				// Unprovisioned emails are rejected at the callback; send them back
+				// to the login page so the error message renders instead of a raw
+				// better-auth error page.
+				errorCallbackURL: "/auth/login",
 			});
 			if (result.error) {
 				setError(result.error.message ?? "Failed to start sign-in");
