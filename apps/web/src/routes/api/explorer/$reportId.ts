@@ -6,9 +6,9 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { db } from "@workspace/lib/db/db";
-import { brands, explorerReports } from "@workspace/lib/db/schema";
+import { explorerReports } from "@workspace/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { requireAuthSession, checkOrgAccess } from "@/lib/auth/helpers";
+import { requireAuthSession, requireBrandAccess } from "@/lib/auth/helpers";
 
 export const Route = createFileRoute("/api/explorer/$reportId")({
 	server: {
@@ -25,8 +25,9 @@ export const Route = createFileRoute("/api/explorer/$reportId")({
 				const row = rows[0];
 				if (!row) return new Response("Not found", { status: 404 });
 
-				const brand = await db.query.brands.findFirst({ where: eq(brands.id, row.brandId) });
-				if (!brand || !(await checkOrgAccess(session.user.id, brand.organizationId))) {
+				try {
+					await requireBrandAccess(session.user.id, row.brandId);
+				} catch {
 					return new Response("Forbidden", { status: 403 });
 				}
 
