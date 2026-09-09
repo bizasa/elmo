@@ -17,7 +17,7 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "../src/db/db";
 import { brands, competitors, promptRuns, prompts } from "../src/db/schema";
-import { analyzeMentions } from "../src/mention-analysis";
+import { analyzeMentions } from "../src/mentions";
 import { extractTextContent } from "../src/text-extraction";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -78,7 +78,11 @@ async function main(): Promise<void> {
 		for (const run of runs) {
 			scanned++;
 			const text = extractTextContent(run.rawOutput, run.provider ?? run.model);
-			const { brandMentioned, brandPosition } = analyzeMentions(text, brand, competitorsList);
+			const { brandMentioned, brandPosition } = analyzeMentions(
+				text,
+				{ name: brand.name, aliases: brand.aliases, domains: [brand.website, ...(brand.additionalDomains ?? [])] },
+				competitorsList,
+			);
 			if (!brandMentioned || brandPosition === null) continue;
 			mentioned++;
 			if (!DRY_RUN) {

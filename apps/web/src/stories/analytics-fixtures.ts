@@ -30,15 +30,23 @@ const visibilityTimeSeries = DATES.map((date, i) => ({
 	branded: clamp(90 + 4 * Math.sin(i / 5)),
 }));
 
+// Mention position: hovering around #2, improving slightly toward #1.
+const positionTimeSeries = DATES.map((date, i) => ({
+	date,
+	value: Math.round((2.8 - i * 0.02 + 0.4 * Math.sin(i / 4)) * 10) / 10,
+}));
+
 export const mockDashboardSummary = {
 	totalPrompts: 42,
 	totalRuns: 3120,
 	averageVisibility: 68,
 	nonBrandedVisibility: 51,
 	brandedVisibility: 92,
+	averagePosition: 2.4,
 	lastUpdatedAt: "2026-06-04T09:12:00.000Z",
 	visibilityTimeSeries,
 	citationTimeSeries: [],
+	positionTimeSeries,
 };
 
 // Share of voice: brand hovering in the low-30s against three competitors.

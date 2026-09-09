@@ -210,6 +210,7 @@ async function savePromptRun(
 	webQueries: string[],
 	brandMentioned: boolean,
 	competitorsMentioned: string[],
+	brandPosition: number | null,
 ): Promise<{ id: string; createdAt: Date }> {
 	const [result] = await db
 		.insert(promptRuns)
@@ -224,6 +225,7 @@ async function savePromptRun(
 			webQueries,
 			brandMentioned,
 			competitorsMentioned,
+			brandPosition,
 		})
 		.returning({ id: promptRuns.id, createdAt: promptRuns.createdAt });
 
@@ -319,7 +321,7 @@ async function runModelIteration({
 
 		const safeTextContent = typeof textContent === "string" ? textContent : "";
 
-		const { brandMentioned, competitorsMentioned } = analyzeMentions(
+		const { brandMentioned, competitorsMentioned, brandPosition } = analyzeMentions(
 			safeTextContent,
 			{ name: brand.name, aliases: brand.aliases, domains: [brand.website, ...(brand.additionalDomains ?? [])] },
 			competitorsList,
@@ -338,6 +340,7 @@ async function runModelIteration({
 			webQueries,
 			brandMentioned,
 			competitorsMentioned,
+			brandPosition,
 		);
 		console.log(`${logPrefix} Saved prompt run ${promptRunId}`);
 

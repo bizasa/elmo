@@ -25,11 +25,20 @@ export function TrendChart({
 	label,
 	color,
 	className = "aspect-auto h-full w-full",
+	formatValue = (value: number) => `${value}%`,
+	yDomain = [0, "auto"],
+	reversed = false,
 }: {
 	data: TrendPoint[];
 	label: string;
 	color: string;
 	className?: string;
+	/** Formats axis ticks and the tooltip value. Defaults to a percentage. */
+	formatValue?: (value: number) => string;
+	/** Y-axis domain, passed straight to recharts. Defaults to `[0, "auto"]`. */
+	yDomain?: [number | string, number | string];
+	/** Flip the axis so lower values sit at the top (e.g. a #1 rank). */
+	reversed?: boolean;
 }) {
 	const config = { value: { label, color } } satisfies ChartConfig;
 
@@ -49,13 +58,14 @@ export function TrendChart({
 					}
 				/>
 				<YAxis
-					domain={[0, "auto"]}
+					domain={yDomain}
+					reversed={reversed}
 					tickLine={false}
 					axisLine={false}
 					tickMargin={8}
 					tickCount={4}
 					tick={{ fontSize: 11 }}
-					tickFormatter={(value: number) => `${value}%`}
+					tickFormatter={(value: number) => formatValue(value)}
 				/>
 				<ChartTooltip
 					isAnimationActive={false}
@@ -75,7 +85,7 @@ export function TrendChart({
 								<div className="flex items-center gap-2">
 									<div className="shrink-0 rounded-[2px] h-2.5 w-2.5" style={{ background: color }} />
 									<span className="text-muted-foreground">{label}</span>
-									<span className="ml-auto font-mono tabular-nums">{value}%</span>
+									<span className="ml-auto font-mono tabular-nums">{formatValue(value)}</span>
 								</div>
 							</div>
 						);

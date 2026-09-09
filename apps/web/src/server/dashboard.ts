@@ -19,6 +19,7 @@ import {
 	getDashboardSummary,
 	getPerPromptDailyCitationStats,
 	getPerPromptVisibilityTimeSeries,
+	getPositionTimeSeries,
 } from "@/lib/postgres-read";
 import { getTimezoneLookbackRange, resolveTimezone } from "@/lib/timezone-utils";
 
@@ -31,14 +32,23 @@ interface VisibilityTimeSeriesPoint {
 
 type CitationTimeSeriesPoint = { date: string } & Record<CitationCategory, number>;
 
+export interface PositionTimeSeriesPoint {
+	date: string;
+	/** Mean brand rank that day, or null when the brand wasn't mentioned. */
+	value: number | null;
+}
+
 export interface DashboardSummaryResponse {
 	totalPrompts: number;
 	totalRuns: number;
 	averageVisibility: number;
 	nonBrandedVisibility: number;
 	brandedVisibility: number;
+	/** Mean brand rank among mentioned entities, over runs that mention the brand. Null when none do. */
+	averagePosition: number | null;
 	visibilityTimeSeries: VisibilityTimeSeriesPoint[];
 	citationTimeSeries: CitationTimeSeriesPoint[];
+	positionTimeSeries: PositionTimeSeriesPoint[];
 	lastUpdatedAt: string | null;
 }
 
@@ -97,14 +107,16 @@ export const getDashboardSummaryFn = createServerFn({ method: "GET" })
 			.filter((p) => getEffectiveBrandedStatus(p.systemTags || [], p.tags || []).isBranded)
 			.map((p) => p.id);
 
-		const [summaryResult, perPromptVisibility, perPromptCitations] = await Promise.all([
+		const [summaryResult, perPromptVisibility, perPromptCitations, positionRows] = await Promise.all([
 			getDashboardSummary(data.brandId, fromDateStr, toDateStr, timezone, enabledPromptIds),
 			getPerPromptVisibilityTimeSeries(data.brandId, fromDateStr, toDateStr, timezone, enabledPromptIds),
 			getPerPromptDailyCitationStats(data.brandId, fromDateStr, toDateStr, timezone, enabledPromptIds),
+			getPositionTimeSeries(data.brandId, fromDateStr, toDateStr, timezone, enabledPromptIds),
 		]);
 
 		const summary = summaryResult[0];
 		const totalRuns = summary ? Number(summary.total_runs) : 0;
+		const averagePosition = summary?.avg_position != null ? Number(summary.avg_position) : null;
 		const lastUpdatedAt = summary?.last_updated || null;
 
 		// Same window as the DB queries above (and as share-of-voice), so LVCF
@@ -152,14 +164,24 @@ export const getDashboardSummaryFn = createServerFn({ method: "GET" })
 			return { date, ...(toRoundedPercentages(c) as Record<CitationCategory, number>) };
 		});
 
+		// Sparse by nature (a day with no brand mention has no position), so this
+		// isn't LVCF-smoothed — gaps stay null and the chart bridges them.
+		const positionByDate = new Map(positionRows.map((r) => [String(r.date), r.avg_position]));
+		const positionTimeSeries: PositionTimeSeriesPoint[] = dateRange.map((date) => ({
+			date,
+			value: positionByDate.get(date) ?? null,
+		}));
+
 		return {
 			totalPrompts: Number(totalPrompts),
 			totalRuns,
 			averageVisibility,
 			nonBrandedVisibility,
 			brandedVisibility,
+			averagePosition,
 			visibilityTimeSeries,
 			citationTimeSeries,
+			positionTimeSeries,
 			lastUpdatedAt,
 		};
 	});

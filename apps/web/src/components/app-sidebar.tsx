@@ -12,6 +12,7 @@ import {
 	IconSitemap,
 	IconSpeakerphone,
 	IconTarget,
+	IconTelescope,
 	IconUsers,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
@@ -79,6 +80,7 @@ function brandGroups(organization: OrganizationSummary, brand: BrandWithPrompts)
 			{ title: "Query Fan-Out", link: { to: "/app/org/$org/brand/$brand/query-fan-out", params }, icon: IconSitemap },
 			{ title: "Citations", link: { to: "/app/org/$org/brand/$brand/citations", params }, icon: IconLink },
 			{ title: "Opportunities", link: { to: "/app/org/$org/brand/$brand/opportunities", params }, icon: IconTarget },
+			{ title: "AI Explorer", link: { to: "/app/org/$org/brand/$brand/ai-explorer", params }, icon: IconTelescope },
 		);
 	}
 

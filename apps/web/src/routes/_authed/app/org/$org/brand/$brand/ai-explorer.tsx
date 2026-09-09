@@ -1,41 +1,29 @@
 /**
- * /app/$brand/ai-explorer - AI Mentions Explorer list + create page, scoped to
- * the current brand. Access is gated by the parent `$brand` layout (any user
- * who can view the brand can generate/view reports for it).
+ * /app/org/$org/brand/$brand/ai-explorer - AI Mentions Explorer list + create
+ * page, scoped to the current brand. Access is gated by the parent brand layout
+ * (any user who can view the brand can generate/view reports for it).
  */
-import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { getAppName } from "@/lib/route-head";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@workspace/ui/components/button";
-import { Label } from "@workspace/ui/components/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@workspace/ui/components/select";
-import { Card, CardContent } from "@workspace/ui/components/card";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
+import { Card, CardContent } from "@workspace/ui/components/card";
+import { Label } from "@workspace/ui/components/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
 import { ExternalLink } from "lucide-react";
-import { getExplorerReportsFn, createExplorerReportFn } from "@/server/explorer-reports";
+import { useState } from "react";
+import { PageHeader } from "@/components/page-header";
+import { pageHead } from "@/lib/route-head";
+import { createExplorerReportFn, getExplorerReportsFn } from "@/server/explorer-reports";
 
-export const Route = createFileRoute("/_authed/app/$brand/ai-explorer")({
-	head: ({ match }) => {
-		const appName = getAppName(match);
-		return {
-			meta: [
-				{ title: `AI Mentions Explorer · ${appName}` },
-				{ name: "description", content: "Generate and view AI mentions explorer reports." },
-			],
-		};
-	},
+export const Route = createFileRoute("/_authed/app/org/$org/brand/$brand/ai-explorer")({
+	staticData: { crumb: "AI Explorer" },
+	head: pageHead({ description: "Generate and view AI mentions explorer reports." }),
 	component: AiExplorerPage,
 });
 
 function AiExplorerPage() {
-	const { brand: brandId } = Route.useParams();
+	const { brandId } = Route.useRouteContext();
 	const queryClient = useQueryClient();
 
 	const { data: reports = [] } = useQuery({
@@ -50,8 +38,7 @@ function AiExplorerPage() {
 	const [error, setError] = useState("");
 
 	const createMutation = useMutation({
-		mutationFn: () =>
-			createExplorerReportFn({ data: { brandId, windowDays: Number(windowDays), language } }),
+		mutationFn: () => createExplorerReportFn({ data: { brandId, windowDays: Number(windowDays), language } }),
 		onSuccess: () => {
 			setError("");
 			queryClient.invalidateQueries({ queryKey: ["explorer-reports", brandId] });
@@ -62,11 +49,10 @@ function AiExplorerPage() {
 	});
 
 	return (
-		<div className="space-y-8">
-			<div className="space-y-2">
-				<h1 className="text-xl font-semibold">AI Mentions Explorer</h1>
-				<p className="text-muted-foreground">Pick a window and language to generate a report.</p>
-			</div>
+		<PageHeader
+			title="AI Mentions Explorer"
+			subtitle="Pick a window and language to generate a report."
+		>
 			<div className="space-y-6 max-w-4xl">
 				<div className="space-y-4">
 					<h2 className="text-2xl font-semibold">Generate New Report</h2>
@@ -103,7 +89,11 @@ function AiExplorerPage() {
 
 							{error && <p className="text-sm text-destructive">{error}</p>}
 
-							<Button disabled={createMutation.isPending} onClick={() => createMutation.mutate()} className="cursor-pointer">
+							<Button
+								disabled={createMutation.isPending}
+								onClick={() => createMutation.mutate()}
+								className="cursor-pointer"
+							>
 								{createMutation.isPending ? "Generating…" : "Generate report"}
 							</Button>
 						</CardContent>
@@ -124,7 +114,7 @@ function AiExplorerPage() {
 							{reports.map((r) => (
 								<div
 									key={r.id}
-									className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center justify-between"
+									className="bg-muted border rounded-lg p-4 flex items-center justify-between"
 								>
 									<div className="text-sm">
 										<span className="font-semibold text-lg">{r.brandName}</span>
@@ -152,6 +142,6 @@ function AiExplorerPage() {
 					)}
 				</div>
 			</div>
-		</div>
+		</PageHeader>
 	);
 }

@@ -21,6 +21,8 @@ export interface DashboardSummary {
 	total_runs: number;
 	avg_visibility: number;
 	non_branded_visibility: number;
+	/** Mean brand rank across runs that mention the brand, or null when none do. */
+	avg_position: number | null;
 	last_updated: string | null;
 }
 
@@ -193,11 +195,44 @@ export async function getDashboardSummary(
 			count(*)::int AS total_runs,
 			round(count(*) FILTER (WHERE brand_mentioned) * 100.0 / NULLIF(count(*), 0), 0)::int AS avg_visibility,
 			round(count(*) FILTER (WHERE brand_mentioned) * 100.0 / NULLIF(count(*), 0), 0)::int AS non_branded_visibility,
+			round(avg(brand_position) FILTER (WHERE brand_position IS NOT NULL), 1)::float AS avg_position,
 			to_char(max(created_at) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS') || '.000Z' AS last_updated
 		FROM prompt_runs
 		WHERE brand_id = ${brandId}
 			${dateFilter(fromDate, toDate, timezone)}
 			${promptIdFilter(enabledPromptIds)}
+	`);
+	return rows;
+}
+
+export interface PositionTimeSeriesPoint {
+	date: string;
+	avg_position: number | null;
+}
+
+/**
+ * Daily mean brand position — the average rank of the brand among mentioned
+ * entities, over the runs on each day that actually mention it. Days with no
+ * brand mention are absent (the caller fills them as gaps).
+ */
+export async function getPositionTimeSeries(
+	brandId: string,
+	fromDate: string | null,
+	toDate: string | null,
+	timezone: string,
+	enabledPromptIds?: string[],
+): Promise<PositionTimeSeriesPoint[]> {
+	const rows = await queryPg<PositionTimeSeriesPoint>(sql`
+		SELECT
+			(created_at AT TIME ZONE ${timezone})::date AS date,
+			round(avg(brand_position), 1)::float AS avg_position
+		FROM prompt_runs
+		WHERE brand_id = ${brandId}
+			AND brand_position IS NOT NULL
+			${dateFilter(fromDate, toDate, timezone)}
+			${promptIdFilter(enabledPromptIds)}
+		GROUP BY 1
+		ORDER BY 1
 	`);
 	return rows;
 }

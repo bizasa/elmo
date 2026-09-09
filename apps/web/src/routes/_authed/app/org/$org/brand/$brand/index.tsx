@@ -7,6 +7,7 @@ import {
 	IconList,
 	IconRefresh,
 	IconSpeakerphone,
+	IconTrophy,
 } from "@tabler/icons-react";
 import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import { labelForModelFilter } from "@workspace/config/model-filter";
@@ -373,6 +374,91 @@ function ResearchBrandData({ brandId, clientConfig }: { brandId: string; clientC
 	);
 }
 
+// Position is a rank, so lower is better — the colour scale is inverted from
+// visibility (a #1 average is the strongest result).
+function getPositionTextColor(value: number): string {
+	if (value <= 1.5) return "text-emerald-700 dark:text-emerald-400";
+	if (value <= 3) return "text-amber-700 dark:text-amber-400";
+	return "text-rose-700 dark:text-rose-400";
+}
+
+function getPositionBgColor(value: number): string {
+	if (value <= 1.5) return "bg-emerald-50 dark:bg-emerald-950/30";
+	if (value <= 3) return "bg-amber-50 dark:bg-amber-950/30";
+	return "bg-rose-50 dark:bg-rose-950/30";
+}
+
+function getPositionBorderColor(value: number): string {
+	if (value <= 1.5) return "border-emerald-200 dark:border-emerald-800";
+	if (value <= 3) return "border-amber-200 dark:border-amber-800";
+	return "border-rose-200 dark:border-rose-800";
+}
+
+/** Hero stat for the mention-position card — a `#rank`, not a percentage. */
+function PositionHeroStat({ value, loading }: { value: number | null; loading: boolean }) {
+	return (
+		<CardContent className="flex-1 flex items-center justify-center">
+			<div
+				className={`font-bold tracking-tight tabular-nums ${value === null ? "text-muted-foreground" : getPositionTextColor(value)}`}
+				style={{ fontSize: "clamp(2.5rem, 6vw, 5rem)" }}
+			>
+				{loading ? <Skeleton className="h-16 w-32" /> : value === null ? "—" : `#${value.toFixed(1)}`}
+			</div>
+		</CardContent>
+	);
+}
+
+const POSITION_TOOLTIP =
+	"When an AI answer names your brand, where it appears relative to the competitors named in the same answer — #1 means your brand is listed before any competitor. The big number is the 30-day average; the line tracks the daily average and rises as your brand moves earlier. Only answers that mention your brand count.";
+
+/** Mention-position band: a `#rank` hero beside its 30-day line (axis flipped so #1 sits on top). */
+function PositionSection({
+	value,
+	series,
+	loading,
+}: {
+	value: number | null;
+	series: TrendPoint[];
+	loading: boolean;
+}) {
+	const heroTone = value === null ? "" : `${getPositionBgColor(value)} ${getPositionBorderColor(value)}`;
+	return (
+		<section className="space-y-2">
+			<div className="flex items-center justify-between">
+				<h2 className="text-lg font-semibold flex items-center gap-2">
+					<IconTrophy className="h-5 w-5 text-muted-foreground" />
+					Mention Position
+				</h2>
+			</div>
+
+			<div className="grid gap-4 lg:grid-cols-4">
+				<Card className={`shadow-none flex flex-col gap-3 py-4 ${heroTone}`}>
+					<PositionHeroStat value={value} loading={loading} />
+				</Card>
+				<Card className="shadow-none lg:col-span-3 flex flex-col gap-3 py-4">
+					<CardHeader className="border-b border-dotted pb-2!">
+						<CardTitleWithTooltip title="Mention Position Trends (30d)" tooltip={loading ? undefined : POSITION_TOOLTIP} />
+					</CardHeader>
+					<CardContent className="flex-1 min-h-[100px]">
+						{loading ? (
+							<Skeleton className="h-full w-full" />
+						) : (
+							<TrendChart
+								data={series}
+								label="Avg. mention position"
+								color="#2563eb"
+								formatValue={(v) => `#${v}`}
+								yDomain={[1, "auto"]}
+								reversed
+							/>
+						)}
+					</CardContent>
+				</Card>
+			</div>
+		</section>
+	);
+}
+
 /** The big "current" stat that fills a card — the latest point of its trend, colour-coded by value. */
 function HeroStat({ value, loading }: { value: number | null; loading: boolean }) {
 	return (
@@ -401,6 +487,8 @@ function useDashboardMetrics(brandId: string | undefined) {
 		visibilityTimeSeries: dashboardSummary?.visibilityTimeSeries || [],
 		sovTimeSeries: sovData?.shareTimeSeries ?? [],
 		nonBrandedVisibility: dashboardSummary?.nonBrandedVisibility || 0,
+		averagePosition: dashboardSummary?.averagePosition ?? null,
+		positionTimeSeries: dashboardSummary?.positionTimeSeries || [],
 		lastUpdatedAt: dashboardSummary?.lastUpdatedAt || null,
 	};
 }
@@ -431,6 +519,8 @@ function DashboardPage() {
 		visibilityTimeSeries,
 		sovTimeSeries,
 		nonBrandedVisibility,
+		averagePosition,
+		positionTimeSeries,
 		lastUpdatedAt,
 	} = useDashboardMetrics(brand?.id);
 	useReportedPromptCount(totalPrompts);
@@ -480,6 +570,12 @@ function DashboardPage() {
 					value={lastValue(sovTimeSeries, "share")}
 					series={sovTimeSeries.map((p) => ({ date: p.date, value: p.share }))}
 					loading={loadingSov}
+				/>
+
+				<PositionSection
+					value={averagePosition}
+					series={positionTimeSeries.map((p) => ({ date: p.date, value: p.value }))}
+					loading={loadingVisibility}
 				/>
 
 				<section className="pt-2">
