@@ -61,7 +61,12 @@
     "RESEND_API_KEY",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
-    "RESEND_FROM_EMAIL"
+    "RESEND_FROM_EMAIL",
+    "VILAO_API_KEY",
+    "VILAO_GATEWAY_URL",
+    "CF_AIG_TOKEN",
+    "VILAO_MODEL",
+    "VILAO_MODEL_CHAIN"
   ],
   "tasks": {
     "//#format": {

@@ -53,6 +53,14 @@ async function main() {
 			expireInSeconds: 60 * 60, // 1 hour timeout for reports
 		});
 	}
+	if (getDeployment().features.reportGeneration) {
+		await boss.createQueue("generate-explorer-report", {
+			retryLimit: 2,
+			retryDelay: 60,
+			retryBackoff: true,
+			expireInSeconds: 60 * 30,
+		});
+	}
 	await boss.createQueue("analyze-brand", {
 		retryLimit: 1,
 		retryDelay: 10,

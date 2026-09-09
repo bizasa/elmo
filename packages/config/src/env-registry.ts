@@ -438,6 +438,37 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 		description:
 			"Sender address for transactional email, in the form: Elmo <notifications@updates.example.com>. The domain must be verified in Resend.",
 	},
+	{
+		name: "VILAO_API_KEY",
+		scope: "server",
+		requiredBy: "optional",
+		description:
+			"Vilao AI (via Cloudflare AI Gateway) API key used to write explorer-report narratives. Optional; narrative generation is skipped/falls back when unset.",
+	},
+	{
+		name: "VILAO_GATEWAY_URL",
+		scope: "server",
+		requiredBy: "optional",
+		description: "Full Cloudflare AI Gateway URL for the custom Vilao provider's OpenAI-compatible chat/completions endpoint.",
+	},
+	{
+		name: "CF_AIG_TOKEN",
+		scope: "server",
+		requiredBy: "optional",
+		description: "Cloudflare AI Gateway authorization token sent as the cf-aig-authorization header.",
+	},
+	{
+		name: "VILAO_MODEL",
+		scope: "server",
+		requiredBy: "optional",
+		description: "First Vilao model id tried when generating a narrative (default occ/claude-sonnet-5).",
+	},
+	{
+		name: "VILAO_MODEL_CHAIN",
+		scope: "server",
+		requiredBy: "optional",
+		description: "Comma-separated Vilao model ids tried in order before falling back to OpenRouter.",
+	},
 ];
 
 export const CREDENTIAL_ENV_NAMES: ReadonlySet<string> = new Set(
