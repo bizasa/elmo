@@ -331,8 +331,9 @@ export function extractTextFromCloro(rawOutput: any): string {
 	try {
 		const answer = cloroAnswer(rawOutput);
 		if (!answer) return "No content in Cloro output.";
-		// `markdown` first: the AI Overview task is asked for it explicitly, and
-		// `text` is the same answer with its formatting flattened away.
+		// `markdown` carries the answer's inline citations; `text` is the same
+		// answer with those and its formatting flattened away. Runs stored before
+		// the request asked for markdown only have `text`.
 		for (const key of ["markdown", "text"]) {
 			if (typeof answer[key] === "string" && answer[key].trim()) return answer[key].trim();
 		}
@@ -340,6 +341,40 @@ export function extractTextFromCloro(rawOutput: any): string {
 	} catch {
 		return "Error extracting text content.";
 	}
+}
+
+export function searchapiAnswer(rawOutput: any): Record<string, any> | null {
+	if (!rawOutput || typeof rawOutput !== "object") return null;
+	const answer = "ai_overview" in rawOutput ? rawOutput.ai_overview : rawOutput;
+	return answer && typeof answer === "object" ? answer : null;
+}
+
+function collectSearchapiBlocks(node: any, out: string[], depth = 0): void {
+	if (depth > 8) return;
+	for (const block of asArray(node)) {
+		const answer = textOrNull(block?.answer) ?? textOrNull(block?.code);
+		if (answer) out.push(answer.trim());
+		collectSearchapiBlocks(block?.items, out, depth + 1);
+	}
+}
+
+/**
+ * The answer a payload actually carries, or null when it carries none. The
+ * provider gates a run on this so its "is there an answer?" check can't drift
+ * from what the extractor reads.
+ */
+export function searchapiText(rawOutput: any): string | null {
+	const answer = searchapiAnswer(rawOutput);
+	if (!answer) return null;
+	const markdown = textOrNull(answer.markdown);
+	if (markdown) return markdown.trim();
+	const blocks: string[] = [];
+	collectSearchapiBlocks(answer.text_blocks, blocks);
+	return blocks.length > 0 ? blocks.join("\n\n") : null;
+}
+
+export function extractTextFromSearchapi(rawOutput: any): string {
+	return firstText("No text content found in SearchApi output.", [() => searchapiText(rawOutput)]);
 }
 
 /**
@@ -366,6 +401,8 @@ export function extractTextContent(rawOutput: any, providerOrEngine: string): st
 			return extractTextFromDataforseo(rawOutput);
 		case "openrouter":
 			return extractTextFromOpenRouter(rawOutput);
+		case "searchapi":
+			return extractTextFromSearchapi(rawOutput);
 		case "olostep":
 			return extractTextFromOlostep(rawOutput);
 		case "brightdata":
@@ -623,6 +660,15 @@ export function extractCitationsFromCloro(rawOutput: any): Citation[] {
 	});
 }
 
+export function extractCitationsFromSearchapi(rawOutput: any): Citation[] {
+	return collectCitations((add) => {
+		// ChatGPT's `web_results` is everything it retrieved, not what it cited.
+		for (const ref of pluck([searchapiAnswer(rawOutput)], "reference_links")) {
+			add(sourceUrl(ref, "link", "url"), ref?.title ?? ref?.source);
+		}
+	});
+}
+
 /**
  * Extract citations from stored rawOutput.
  * Dispatches based on provider (how data was fetched), falling back to engine
@@ -641,6 +687,8 @@ export function extractCitations(rawOutput: any, providerOrEngine: string): Cita
 			return extractCitationsFromDataforseo(rawOutput);
 		case "openrouter":
 			return extractCitationsFromOpenRouter(rawOutput);
+		case "searchapi":
+			return extractCitationsFromSearchapi(rawOutput);
 		case "olostep":
 			return extractCitationsFromOlostep(rawOutput);
 		case "brightdata":

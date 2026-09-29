@@ -8,8 +8,9 @@ import { competitors, getComparisonSlug, isLowDR } from "@/lib/competitors";
 import { DIRECTORY_FAQS } from "@/lib/faqs";
 import { breadcrumbJsonLd, canonicalUrl, faqJsonLd, itemListJsonLd, ogMeta } from "@/lib/seo";
 
-const title = "AI Visibility Tool Directory | Compare AI Search Tools · Elmo";
-const description = "Compare 100+ AI visibility and AEO tools, head-to-head with Elmo.";
+const title = "AI Visibility Tools: Compare Every AEO & GEO Platform · Elmo";
+const description =
+	"Compare 100+ AI visibility tools, AEO software, LLM visibility trackers and GEO platforms side by side — engine coverage, pricing, and features, each head-to-head with Elmo.";
 
 // Indexed comparison pages (mirrors the sitemap filter), surfaced as ItemList
 // structured data so AI engines can extract the full directory of tools.
@@ -21,7 +22,8 @@ const directoryItems = competitors
 	}));
 
 export const Route = createFileRoute("/ai-visibility-tools/")({
-	head: () => ({
+	loader: () => ({ directoryItems }),
+	head: ({ loaderData }) => ({
 		meta: [
 			{ title },
 			{ name: "description", content: description },
@@ -34,7 +36,7 @@ export const Route = createFileRoute("/ai-visibility-tools/")({
 		links: [{ rel: "canonical", href: canonicalUrl("/ai-visibility-tools") }],
 		scripts: [
 			faqJsonLd(DIRECTORY_FAQS),
-			itemListJsonLd(directoryItems),
+			itemListJsonLd(loaderData?.directoryItems ?? []),
 			breadcrumbJsonLd([
 				{ name: "Home", path: "/" },
 				{ name: "AI Visibility Tool Directory", path: "/ai-visibility-tools" },

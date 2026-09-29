@@ -31,7 +31,7 @@ import type { Citation } from "@workspace/lib/text-extraction";
 import { estimateRunCostUsd } from "@workspace/lib/usage";
 import { and, eq, gt, sql } from "drizzle-orm";
 import type { Job } from "pg-boss";
-import boss from "../boss";
+import { getBoss } from "../boss";
 import { trackWorkerEvent } from "../telemetry";
 
 export interface ProcessPromptData {
@@ -84,6 +84,7 @@ async function scheduleNextRun(promptId: string, cadenceHours: number, consecuti
 	const reason = consecutiveFailures > 0 ? ` (backing off after ${consecutiveFailures} failed cycle(s))` : "";
 
 	try {
+		const boss = getBoss();
 		// Prevent duplicates until the next attempt is due.
 		const jobId = await boss.send("process-prompt", data, { ...baseOptions, singletonSeconds: startAfterSeconds });
 		if (!jobId) {

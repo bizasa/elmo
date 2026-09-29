@@ -64,8 +64,8 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 	{
 		name: "AUTH0_DOMAIN",
 		scope: "server",
-		requiredBy: "optional",
-		description: "Auth0 tenant domain (used for whitelabel logout redirects).",
+		requiredBy: ["whitelabel"],
+		description: "Auth0 tenant domain, used for whitelabel SSO and logout redirects.",
 	},
 	{
 		name: "AUTH0_CLIENT_ID",
@@ -161,6 +161,13 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 			"Comma-separated model:provider[:version][:online] entries. Example: chatgpt:olostep:online,google-ai-mode:olostep:online,copilot:olostep:online",
 	},
 	{
+		name: "SEARCHAPI_API_KEY",
+		scope: "server",
+		requiredBy: "dynamic-scrape-targets",
+		provider: "searchapi",
+		description: "SearchApi.io API key.",
+	},
+	{
 		name: "OLOSTEP_API_KEY",
 		scope: "server",
 		requiredBy: "dynamic-scrape-targets",
@@ -208,6 +215,13 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 		requiredBy: "dynamic-scrape-targets",
 		provider: "openrouter",
 		description: "OpenRouter API key.",
+	},
+	{
+		name: "ONBOARDING_LLM_TARGET",
+		scope: "server",
+		requiredBy: "optional",
+		description:
+			"model:provider override for the LLM behind brand onboarding and the Opportunities report (e.g., 'claude:anthropic-api'). Defaults to the first configured provider in RESEARCH_PROVIDER_PREFERENCE.",
 	},
 	{
 		name: "JINA_API_KEY",
@@ -271,12 +285,6 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 		description: "Environment name reported to Sentry (e.g. production).",
 	},
 	{
-		name: "VITE_DEPLOYMENT_MODE",
-		scope: "client",
-		requiredBy: "optional",
-		description: "Client-visible copy of DEPLOYMENT_MODE.",
-	},
-	{
 		name: "VITE_APP_NAME",
 		scope: "client",
 		requiredBy: ["whitelabel"],
@@ -297,13 +305,14 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 	{
 		name: "VITE_APP_PARENT_NAME",
 		scope: "client",
-		requiredBy: ["whitelabel"],
-		description: "Parent application name (e.g., 'Acme').",
+		requiredBy: "optional",
+		description:
+			"Parent application name (e.g., 'Acme'). The nav links back to the parent app only when this and VITE_APP_PARENT_URL are both set.",
 	},
 	{
 		name: "VITE_APP_PARENT_URL",
 		scope: "client",
-		requiredBy: ["whitelabel"],
+		requiredBy: "optional",
 		description: "Parent application URL (e.g., 'https://app.example.com/').",
 	},
 	{
@@ -350,12 +359,6 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 		requiredBy: "optional",
 		wwwOnly: true,
 		description: "Vercel Blob token (www competitor screenshots).",
-	},
-	{
-		name: "DBOS_SYSTEM_DATABASE_URL",
-		scope: "server",
-		requiredBy: "optional",
-		description: "Override for the DBOS system database URL (read by the DBOS runtime).",
 	},
 	{
 		name: "SENTRY_DSN",
@@ -478,6 +481,17 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 		description: "Comma-separated Vilao model ids tried in order before falling back to OpenRouter.",
 	},
 ];
+
+/**
+ * Direct-API providers in the order onboarding prefers them. GPT-5 Mini was
+ * the cheapest + best-recall in compare-onboarding runs, so we go OpenAI
+ * direct first, then OpenAI via OpenRouter as a fallback (same model, just
+ * different key), then Anthropic, then Mistral.
+ *
+ * Lives here, not with the onboarding code, so startup validation can require
+ * one of them.
+ */
+export const RESEARCH_PROVIDER_PREFERENCE = ["openai-api", "openrouter", "anthropic-api", "mistral-api"] as const;
 
 export const CREDENTIAL_ENV_NAMES: ReadonlySet<string> = new Set(
 	ENV_REGISTRY.filter((spec) => spec.requiredBy === "dynamic-scrape-targets" && spec.provider).map((spec) => spec.name),

@@ -1,5 +1,35 @@
 # e2e
 
+## 0.4.3
+
+### Patch Changes
+
+- Updated dependencies [10bc2f0]
+  - @workspace/lib@0.4.3
+
+## 0.4.2
+
+### Patch Changes
+
+- @workspace/lib@0.4.2
+
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [e2543e8]
+  - @workspace/lib@0.4.1
+
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [f6e90d9]
+- Updated dependencies [99f537c]
+- Updated dependencies [c9142f7]
+- Updated dependencies [aa8c80d]
+  - @workspace/lib@0.4.0
+
 ## 0.3.0
 
 ### Patch Changes

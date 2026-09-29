@@ -136,7 +136,11 @@ export function useSearch(opts?: { select?: (search: Record<string, unknown>) =>
 export function useMatch(opts?: { from?: string; shouldThrow?: boolean; select?: (match: any) => unknown }) {
 	const found = opts?.from ? _matches.find((match) => match.routeId === opts.from) : _matches[_matches.length - 1];
 	if (!found) return undefined;
-	const match = { ...found, params: { org: "mock-organization", brand: "mock-brand-id" } };
+	const match = {
+		...found,
+		params: { org: "mock-organization", brand: "mock-brand-id" },
+		context: { ...BASE_ROUTE_CONTEXT, ..._routeContext },
+	};
 	return opts?.select ? opts.select(match) : match;
 }
 
@@ -179,6 +183,7 @@ function buildLocation({ to, params }: { to?: string; params?: Record<string, st
 export function useRouter() {
 	return {
 		navigate: (_opts: unknown) => {},
+		invalidate: async () => {},
 		buildLocation,
 		state: { location: { pathname: "/", search: "", hash: "" } },
 	};
