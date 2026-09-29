@@ -56,7 +56,7 @@ async function main() {
 			expireInSeconds: 60 * 60, // 1 hour timeout for reports
 		});
 	}
-	if (getDeployment().features.reportGeneration) {
+	if (getDeploymentFeatures().reportGeneration) {
 		await boss.createQueue("generate-explorer-report", {
 			retryLimit: 2,
 			retryDelay: 60,

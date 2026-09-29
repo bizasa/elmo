@@ -48,7 +48,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
 		console.log("Registered handler: generate-report");
 	}
 
-	if (getDeployment().features.reportGeneration) {
+	if (getDeploymentFeatures().reportGeneration) {
 		await boss.work<ExplorerReportJobData>(
 			"generate-explorer-report",
 			{ localConcurrency: 1 },
