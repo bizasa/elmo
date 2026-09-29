@@ -4,6 +4,18 @@ Ngày cập nhật: **2026-09-21** (bản trước 2026-09-09 đã lỗi thời)
 
 ---
 
+## 0. Nhật ký thay đổi phân quyền (đọc đầu tiên khi mở session mới)
+
+**2026-09-21 — team báo không vào được brand.** Nguyên nhân KHÔNG phải đổi tên brand (tên hiển thị không dính tới quyền), mà là brand bị **dồn sang org khác** (avia, visana → `default`; org `avia` cũ bị xoá) trong khi row `member` không chuyển theo → mynt@vidi.vn rơi khỏi mọi org.
+- Đã thêm `mynt@vidi.vn` vào org `default` (role member).
+- Đã đổi org id `visana` → `gigago` (org này vốn tên/slug Gigago, chứa gigago + chinaesim — id cũ gây nhầm với brand visana nằm ở `default`). Repoint member×4, brands×2; không có session nào trỏ org cũ.
+- vantth@vietnamdiscovery.com giữ nguyên chỉ ở `gigago` (Chuan chốt).
+- Kiểm lại 2026-09-29: DB live vẫn khớp bảng §1.
+
+**Còn lệch ngoài repo:** dòng Elmo trong `~/.claude/CLAUDE.md` vẫn ghi "brand tạo qua API phải INSERT member org=brandId" — đó là mô hình cũ 1-brand-1-org, nay sai. Đúng là: gán `brands.organization_id` vào org có sẵn, member của org đó tự thấy brand.
+
+---
+
 ## 1. Trạng thái hiện tại (DB prod contabo-sg, DB `elmo`)
 
 ### Org → Brands
