@@ -175,6 +175,13 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 		description: "BrightData API token.",
 	},
 	{
+		name: "BRIGHTDATA_FREE_TIER_TOKENS",
+		scope: "server",
+		requiredBy: "optional",
+		description:
+			"Extra BrightData accounts spent before BRIGHTDATA_API_TOKEN, each up to a monthly cap: `token@cap,token` (cap defaults to 4500).",
+	},
+	{
 		name: "OXYLABS_USERNAME",
 		scope: "server",
 		requiredBy: "dynamic-scrape-targets",
@@ -449,7 +456,8 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 		name: "VILAO_GATEWAY_URL",
 		scope: "server",
 		requiredBy: "optional",
-		description: "Full Cloudflare AI Gateway URL for the custom Vilao provider's OpenAI-compatible chat/completions endpoint.",
+		description:
+			"Full Cloudflare AI Gateway URL for the custom Vilao provider's OpenAI-compatible chat/completions endpoint.",
 	},
 	{
 		name: "CF_AIG_TOKEN",

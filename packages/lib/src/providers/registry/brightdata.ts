@@ -1,5 +1,6 @@
 import { bdclient } from "@brightdata/sdk";
 import { getCredential } from "../../secrets";
+import { BrightDataKeyPool, parseBrightDataKeys } from "./brightdata-keys";
 import { extractCitationsFromBrightdata, extractTextFromBrightdata } from "../../text-extraction";
 import { configuredWhen, reportedWebQueries } from "../config";
 import type { ModelConfig, Provider, ProviderOptions, ScrapeResult } from "../types";
@@ -26,9 +27,50 @@ const BD_BASE_URL: Record<string, string> = {
 	perplexity: "https://www.perplexity.ai/",
 };
 
-function createClient(): bdclient {
-	return new bdclient({ apiKey: getCredential("BRIGHTDATA_API_TOKEN") });
+function createClient(token: string): bdclient {
+	return new bdclient({ apiKey: token });
 }
+
+let keyPool: { signature: string; pool: BrightDataKeyPool } | null = null;
+
+/** Rebuilt when the configured keys change, so a credential refresh takes effect without a restart. */
+function getKeyPool(): BrightDataKeyPool {
+	const freeTier = process.env.BRIGHTDATA_FREE_TIER_TOKENS;
+	const main = getCredential("BRIGHTDATA_API_TOKEN");
+	const signature = `${freeTier ?? ""}\n${main ?? ""}`;
+	if (keyPool?.signature !== signature) {
+		keyPool = {
+			signature,
+			pool: new BrightDataKeyPool(parseBrightDataKeys(freeTier, main), { monthUsage: countRecordsSince }),
+		};
+	}
+	return keyPool.pool;
+}
+
+/** Records this account has scraped since `since`, across the collectors Elmo uses — one run is one record. */
+async function countRecordsSince(token: string, since: Date): Promise<number> {
+	const totals = await Promise.all(
+		Object.values(BD_DATASET_IDS).map(async (datasetId) => {
+			const params = new URLSearchParams({
+				dataset_id: datasetId,
+				from_date: since.toISOString(),
+				limit: "1",
+				with_total: "true",
+			});
+			const res = await fetch(`https://api.brightdata.com/datasets/v3/snapshots?${params}`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+			if (!res.ok) throw new Error(`snapshots ${res.status}`);
+			const body = (await res.json()) as { total?: unknown };
+			if (typeof body.total !== "number") throw new Error("snapshots response carried no total");
+			return body.total;
+		}),
+	);
+	return totals.reduce((sum, n) => sum + n, 0);
+}
+
+/** BrightData refusing the account itself (suspended, out of credit), as opposed to this one request. */
+class InactiveAccountError extends Error {}
 
 const BRIGHTDATA_REQUEST_URL = "https://api.brightdata.com/request";
 
@@ -42,21 +84,22 @@ const BRIGHTDATA_REQUEST_URL = "https://api.brightdata.com/request";
  * to the same BRIGHTDATA_API_TOKEN — no dataset id or extra credential. The
  * parsed SERP carries an `ai_overview` object when Google shows one.
  */
-function runGoogleAiOverview(prompt: string): Promise<ScrapeResult> {
+async function runGoogleAiOverview(prompt: string): Promise<ScrapeResult> {
 	const zone = process.env.BRIGHTDATA_SERP_ZONE ?? "sdk_serp";
 	const url = `https://www.google.com/search?q=${encodeURIComponent(prompt)}&brd_json=1&brd_ai_overview=2&gl=us&hl=en`;
+	const token = await getKeyPool().acquire();
 
 	return retryTransient(
-		() => attemptGoogleAiOverview(zone, url),
+		() => attemptGoogleAiOverview(token, zone, url),
 		(lastError) => `BrightData SERP request failed after 3 attempts — ${lastError}`,
 	);
 }
 
-async function attemptGoogleAiOverview(zone: string, url: string): Promise<Attempt<ScrapeResult>> {
+async function attemptGoogleAiOverview(token: string, zone: string, url: string): Promise<Attempt<ScrapeResult>> {
 	const res = await fetch(BRIGHTDATA_REQUEST_URL, {
 		method: "POST",
 		headers: {
-			Authorization: `Bearer ${getCredential("BRIGHTDATA_API_TOKEN")}`,
+			Authorization: `Bearer ${token}`,
 			"Content-Type": "application/json",
 		},
 		// `method: "GET"` tells BrightData how to fetch the target URL — without
@@ -161,12 +204,28 @@ export const brightdata: Provider = {
 			);
 		}
 
-		const client = createClient();
+		const pool = getKeyPool();
+		let token = await pool.acquire();
+		let client = createClient(token);
 		let snapshotId: string | undefined;
 		let consumed = false;
 		try {
-			snapshotId = await triggerSnapshot(datasetId, model, prompt, options?.webSearch ?? false);
-			await pollUntilReady(snapshotId);
+			// A snapshot belongs to the account that triggered it, so the key picked
+			// here is the one it's polled, fetched and cancelled with.
+			for (let attempt = 1; ; attempt++) {
+				try {
+					snapshotId = await triggerSnapshot(token, datasetId, model, prompt, options?.webSearch ?? false);
+					break;
+				} catch (error) {
+					if (!(error instanceof InactiveAccountError) || attempt >= pool.size) throw error;
+					pool.markInactive(token);
+					console.warn(`BrightData: an account refused the trigger (${error.message}); trying the next key`);
+					token = await pool.acquire();
+					await client.close();
+					client = createClient(token);
+				}
+			}
+			await pollUntilReady(token, snapshotId);
 			const payload = await client.scrape.snapshot.fetch(snapshotId, { format: "json" });
 			consumed = true;
 
@@ -204,13 +263,19 @@ export const brightdata: Provider = {
 	},
 };
 
-async function triggerSnapshot(datasetId: string, model: string, prompt: string, webSearch: boolean): Promise<string> {
+async function triggerSnapshot(
+	token: string,
+	datasetId: string,
+	model: string,
+	prompt: string,
+	webSearch: boolean,
+): Promise<string> {
 	const response = await fetch(
 		`https://api.brightdata.com/datasets/v3/trigger?dataset_id=${datasetId}&notify=false&include_errors=true&format=json`,
 		{
 			method: "POST",
 			headers: {
-				Authorization: `Bearer ${getCredential("BRIGHTDATA_API_TOKEN")}`,
+				Authorization: `Bearer ${token}`,
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify([
@@ -226,7 +291,11 @@ async function triggerSnapshot(datasetId: string, model: string, prompt: string,
 	);
 
 	if (!response.ok) {
-		throw new Error(`BrightData trigger failed (${response.status}): ${await response.text()}`);
+		const message = `BrightData trigger failed (${response.status}): ${await response.text()}`;
+		if ([401, 402, 403].includes(response.status) || /customer is not active|suspended/i.test(message)) {
+			throw new InactiveAccountError(message);
+		}
+		throw new Error(message);
 	}
 	const { snapshot_id } = (await response.json()) as { snapshot_id: string };
 	return snapshot_id;
@@ -238,11 +307,11 @@ async function triggerSnapshot(datasetId: string, model: string, prompt: string,
  *  status string doesn't fail the run on the very first poll. */
 const TERMINAL_FAILURE = new Set(["failed", "error", "cancelled"]);
 
-async function pollUntilReady(snapshotId: string): Promise<void> {
+async function pollUntilReady(token: string, snapshotId: string): Promise<void> {
 	const maxAttempts = 60;
 
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
-		const status = await getSnapshotStatus(snapshotId);
+		const status = await getSnapshotStatus(token, snapshotId);
 		if (status === "ready") return;
 		if (TERMINAL_FAILURE.has(status)) {
 			throw new Error(`BrightData snapshot ${snapshotId} ${status}`);
@@ -260,10 +329,10 @@ async function pollUntilReady(snapshotId: string): Promise<void> {
  *  live API also returns statuses like "starting", which would otherwise fail the
  *  run instantly instead of waiting. A transient HTTP/parse error is reported as a
  *  non-terminal status so we keep polling rather than abandon the snapshot. */
-async function getSnapshotStatus(snapshotId: string): Promise<string> {
+async function getSnapshotStatus(token: string, snapshotId: string): Promise<string> {
 	try {
 		const res = await fetch(`https://api.brightdata.com/datasets/v3/progress/${snapshotId}`, {
-			headers: { Authorization: `Bearer ${getCredential("BRIGHTDATA_API_TOKEN")}` },
+			headers: { Authorization: `Bearer ${token}` },
 		});
 		if (!res.ok) return "pending";
 		const body = (await res.json()) as { status?: string };
