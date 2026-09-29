@@ -12,7 +12,7 @@ Ngày cập nhật: **2026-09-21** (bản trước 2026-09-09 đã lỗi thời)
 - vantth@vietnamdiscovery.com giữ nguyên chỉ ở `gigago` (Chuan chốt).
 - Kiểm lại 2026-09-29: DB live vẫn khớp bảng §1.
 
-**Còn lệch ngoài repo:** dòng Elmo trong `~/.claude/CLAUDE.md` vẫn ghi "brand tạo qua API phải INSERT member org=brandId" — đó là mô hình cũ 1-brand-1-org, nay sai. Đúng là: gán `brands.organization_id` vào org có sẵn, member của org đó tự thấy brand.
+**2026-09-29:** đã sửa dòng Elmo trong `~/.claude/CLAUDE.md` (bỏ mô hình cũ "INSERT member org=brandId", thay bằng umbrella org + map hiện tại + cảnh báo không đổi id `default`).
 
 ---
 
