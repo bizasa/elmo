@@ -5,6 +5,52 @@
  * "acme.com is the pick here" and "Acme's" shapes that are the whole signal.
  */
 
+/**
+ * A name or alias written with a leading "=" (e.g. "=AVIA") only matches as a
+ * whole word. Short brand names are often substrings of common words ("avia" in
+ * "aviation", "vidi" in "providing"), and plain substring matching turns those
+ * into phantom mentions.
+ */
+export const WHOLE_WORD_PREFIX = "=";
+
+/** The label as people read it — drops the whole-word marker. */
+export function displayTerm(term: string): string {
+	return term.startsWith(WHOLE_WORD_PREFIX) ? term.slice(WHOLE_WORD_PREFIX.length).trim() : term.trim();
+}
+
+interface Needle {
+	text: string;
+	wholeWord: boolean;
+}
+
+function toNeedle(term: string): Needle {
+	return { text: displayTerm(term).toLowerCase(), wholeWord: term.startsWith(WHOLE_WORD_PREFIX) };
+}
+
+const WORD_CHAR = /[\p{L}\p{N}]/u;
+
+function isWordChar(ch: string | undefined): boolean {
+	return ch !== undefined && WORD_CHAR.test(ch);
+}
+
+function indexOfNeedle(contentLower: string, needle: Needle): number {
+	if (!needle.text) return -1;
+	if (!needle.wholeWord) return contentLower.indexOf(needle.text);
+	for (let i = contentLower.indexOf(needle.text); i !== -1; i = contentLower.indexOf(needle.text, i + 1)) {
+		if (!isWordChar(contentLower[i - 1]) && !isWordChar(contentLower[i + needle.text.length])) return i;
+	}
+	return -1;
+}
+
+function needlesOf(subject: MentionSubject): Needle[] {
+	return [
+		...[subject.name, ...(subject.aliases ?? [])].filter((n): n is string => !!n).map(toNeedle),
+		...(subject.domains ?? [])
+			.filter((d): d is string => !!d)
+			.map((d) => ({ text: normalizeDomain(d), wholeWord: false })),
+	];
+}
+
 export interface MentionSubject {
 	name: string;
 	aliases?: string[] | null;
@@ -22,21 +68,14 @@ export function normalizeDomain(urlOrDomain: string): string {
 }
 
 export function mentionsSubject(contentLower: string, subject: MentionSubject): boolean {
-	const names = [subject.name, ...(subject.aliases ?? [])];
-	if (names.some((name) => name && contentLower.includes(name.toLowerCase()))) return true;
-	return (subject.domains ?? []).some((domain) => domain && contentLower.includes(normalizeDomain(domain)));
+	return needlesOf(subject).some((needle) => indexOfNeedle(contentLower, needle) !== -1);
 }
 
 /** Earliest index at which the subject is first named (by any name or bare domain), or -1. */
 export function firstMentionIndex(contentLower: string, subject: MentionSubject): number {
-	const needles = [
-		...[subject.name, ...(subject.aliases ?? [])].filter((n): n is string => !!n).map((n) => n.toLowerCase()),
-		...(subject.domains ?? []).filter((d): d is string => !!d).map((d) => normalizeDomain(d)),
-	];
 	let best = -1;
-	for (const needle of needles) {
-		if (!needle) continue;
-		const idx = contentLower.indexOf(needle);
+	for (const needle of needlesOf(subject)) {
+		const idx = indexOfNeedle(contentLower, needle);
 		if (idx !== -1 && (best === -1 || idx < best)) best = idx;
 	}
 	return best;

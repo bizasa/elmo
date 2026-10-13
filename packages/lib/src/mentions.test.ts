@@ -44,6 +44,36 @@ describe("analyzeMentions", () => {
 		expect(result.competitorsMentioned).toEqual(["Globex", "Initech"]);
 	});
 
+	describe("whole-word aliases", () => {
+		const avia = { name: "Zzz", aliases: ["=AVIA"], domains: [] };
+
+		it("matches the word on its own, including next to punctuation", () => {
+			for (const text of ["Book with AVIA.", "**AVIA** offers fast track", "AVIA's service", "Try avia, or VIAGS"]) {
+				expect(analyzeMentions(text, avia, []).brandMentioned).toBe(true);
+			}
+		});
+
+		it("does not match the word inside a longer word", () => {
+			for (const text of ["aviation authority", "Scandinavia trip", "aviaxyz"]) {
+				expect(analyzeMentions(text, avia, []).brandMentioned).toBe(false);
+			}
+		});
+
+		it("finds a later standalone occurrence after an embedded one", () => {
+			expect(analyzeMentions("aviation rules apply; AVIA can help", avia, []).brandMentioned).toBe(true);
+		});
+
+		it("leaves aliases without the marker matching as substrings", () => {
+			expect(analyzeMentions("aviation", { ...avia, aliases: ["avia"] }, []).brandMentioned).toBe(true);
+		});
+
+		it("applies to competitors too", () => {
+			const vidi = { name: "Vidi Travel", aliases: ["=VIDI"], domains: [] };
+			expect(analyzeMentions("providing support", brand, [vidi]).competitorsMentioned).toEqual([]);
+			expect(analyzeMentions("VIDI support", brand, [vidi]).competitorsMentioned).toEqual(["Vidi Travel"]);
+		});
+	});
+
 	it("still matches on name when a subject's domain is unparseable", () => {
 		const result = analyzeMentions("Globex leads.", brand, [{ name: "Globex", domains: ["://broken"] }]);
 		expect(result.competitorsMentioned).toEqual(["Globex"]);
