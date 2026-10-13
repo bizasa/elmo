@@ -3,6 +3,9 @@
 Ngày: 2026-08-17. Mục đích: bàn giao để tiếp tục ở session mới.
 Bổ trợ: các fact hạ tầng bền đã ghi trong `C:\Users\admin\.claude\CLAUDE.md` (dòng `E:\Projects\elmo`).
 
+> ⚠️ **§1–§8 là trạng thái 2026-08-17, nhiều chỗ đã lỗi thời** (version, CF Access, BrightData rotator, alias).
+> Trạng thái hiện tại xem **§12 (2026-10-14)** ở cuối file; phân quyền/org xem `GEO-ORG-STRUCTURE-HANDOFF.md`.
+
 ---
 
 ## 1. Tổng quan hệ thống
@@ -164,3 +167,59 @@ Config: `~/.elmo/.env` (mode 600, chứa secrets + ADMIN_API_KEYS), `~/.elmo/elm
 - **CF Access OTP đã gỡ, GIỮ rule IP:** xoá policy "Company emails" (allow/OTP) khỏi Access app geo, chỉ còn "Office IPs bypass" (4 IP). → office IP vào thẳng (email+password, không OTP); non-office **403**. Chi tiết: memory [[elmo-cf-access-sso-login]].
 
 **Users hiện tại (đều login email+password, password đưa trong chat):** chuannguyen@vietnambiz.com (admin, mọi brand); linhtm@ + hanhpham@vietnamdiscovery.com (avia+visana); vantth@vietnamdiscovery.com (avia+visana); mynt@vidi.vn (avia). ⚠️ Tạo user mới giờ = insert `user`+`account`(password scrypt)+`member` (KHÔNG dùng luồng passwordless nữa). Xem [[elmo-user-provisioning]].
+
+---
+
+## 12. Cập nhật 2026-09-29 → 2026-10-14 (trạng thái HIỆN TẠI)
+
+### Version & deploy
+- Fork nhánh **`geo-v043`** = upstream **v0.4.3** + custom. Images: **web + worker `0.4.3-geo3`**, db-migrate `0.4.3-geo1`.
+  Source build `/opt/elmo-src-v043-geo3` (`git archive` từ commit `e0506ca0`). Compose backup `~/.elmo/elmo.yaml.pre-geo3-*`.
+- Rollback: worker `0.4.3-geo2`, web `0.4.3-geo1` (image còn trên máy). Nhánh `geo-v030-clean` giữ làm rollback v0.3.0.
+- ⚠️ Worker chạy `tsx` không type-check → sau merge luôn `tsc --noEmit` cho `apps/worker` (bài học crash `getDeployment`).
+- Máy Windows KHÔNG có pnpm/node_modules → test/tsc/lint chạy trên server: build target `builder` rồi mount source vào
+  (`docker run -v <src>/packages/lib/src:/app/packages/lib/src elmo-builder-geo3 sh -c "cd packages/lib && ./node_modules/.bin/vitest run ..."`).
+  `git archive` từ Windows ra CRLF → biome báo format; chạy `sed 's/\r$//'` trước khi lint.
+
+### Truy cập
+- **geo.vidi.com.vn MỞ PUBLIC từ 2026-10-12** (không chặn IP): CF Access app `01c56a23…` có thêm policy
+  "Public bypass (everyone)" `aab6deb0…`. Bảo vệ = login email+password Elmo; sign-up đã khoá (POST sign-up → 422).
+  Khoá lại về IP văn phòng = xoá policy `aab6deb0…`.
+- geo-mcp Worker: `ACCESS_PIN` đã rotate (PIN mới ở `C:\Users\admin\.geo-mcp-pin.txt`). Chưa retire (traffic ~1.800 req/30 ngày).
+
+### BrightData
+- Xoay nhiều tài khoản (`packages/lib/src/providers/registry/brightdata-keys.ts`): `BRIGHTDATA_FREE_TIER_TOKENS=key@4500,...`
+  dùng trước (≤cap/tháng, tháng tính từ 12:00 UTC ngày 1), `BRIGHTDATA_API_TOKEN` (gigago, có tiền) cuối.
+  Tài khoản không tiền cạn free → `400 Customer is not active` → key bị cooldown 1h, chuyển key khác.
+- Fix backoff pg-boss: job follow-up bị singleton dedup nuốt im lặng → giờ gửi lại không singleton (`process-prompt.ts`).
+- google-ai-mode từng timeout (~29/09, lỗi phía BrightData) — đã hồi phục 06/10.
+
+### Nhận diện brand (alias) — QUAN TRỌNG
+- Elmo đánh dấu `brand_mentioned` bằng **chuỗi con** của tên/alias/domain, tính **lúc ghi run**. Sửa alias KHÔNG tự sửa lịch sử.
+- **Fork geo3: alias có tiền tố `=` khớp NGUYÊN TỪ** (`packages/lib/src/mentions.ts`). Dùng cho tên ngắn dễ nằm trong từ khác.
+- Sự cố: đổi tên brand sang dạng domain (Gigago.vn 10/09, Visana.vn + cozyhome.com.vn 18/09) mà không có alias → tụt visibility từ ~21/09.
+- Rà soát toàn bộ 12–13/10, alias hiện tại:
+
+| Brand | Alias | Ghi chú |
+|---|---|---|
+| visana | `Visana` | |
+| gigago | `Gigago` | tụt từ 09/09 còn do đổi bộ prompt (không phải lỗi) |
+| cozyhome | `Cozyhome` | trùng tên nước ngoài (cozyhome.com nội thất Mỹ…) chỉ ở prompt EN không có "Hanoi" — các prompt đó đã tắt. "CozyHome Rentals – Vinhomes Metropolis" KHÔNG phải của mình (~25 run lẫn, chấp nhận) |
+| chinaesim | `Chinaesim` | đã bỏ `China eSIM` (cụm chung, 360 run ảo) |
+| vidi-vn | `VIDI Travel`, `=VIDI` | đã bỏ `VIDI` substring (khớp "providing"). "Veni Vidi Travel" (Thổ Nhĩ Kỳ) chỉ ở prompt đã tắt |
+| avia | `=AVIA` | bỏ `avia` substring (khớp "aviation"). "AVIA đại lý vé máy bay quốc tế" = tên cũ của avia |
+| vietnam-visa | (không) | đã bỏ `Vietnamvisa` (khớp domain đối thủ), `Vietnam Visa Service`, `Vietnam Discovery`…; domain phụ chỉ còn `vietnamdiscovery.com` (gỡ visana.vn, vietnam-discovery.com, vietnamdiscovery.info, evisatovietnam.vn — không phải của mình; evisatovietnam.vn = đối thủ Vietnam Visa JSC) |
+| halongtrip | `halongtrip`, `Halongtrip.com` | sạch |
+
+- **Tính lại lịch sử** bằng script one-off `recompute-brand-mentions.ts` (scratchpad session, đọc theo trang 200 row; mount vào
+  `<lib>/scripts/` của image worker rồi `tsx`). Chỉ cập nhật `brand_mentioned` + `brand_position`, không đụng `competitors_mentioned`.
+- Backup trong DB elmo: `_bak_brand_mentions_20261012`, `_bak_brands_20261012`, `_bak_mentions_all_20261012b` (toàn bộ 25.388 run),
+  `_bak_mentions_avia_vidi_20261013`. Xoá được khi đã ổn định.
+- Cách dò alias nghi vấn: với mỗi alias/domain đếm số run khớp, số run CHỈ khớp nhờ nó, và nó khớp vào **chữ gì** (mở rộng ra cả từ) — lộ ngay "aviation", domain đối thủ.
+
+### Việc còn treo
+- `extractTextContent` lẫn chuỗi base64 ảnh vào text → alias substring dễ khớp nhầm (lỗi upstream, chưa sửa).
+- `scheduleNewJobs` của maintenance có cùng kiểu pg-boss dedup im lặng như backoff (chưa sửa).
+- Explorer API trả 500 thay vì 401 khi chưa đăng nhập.
+- Xoá 3 dump DB cũ (~1,8GB) trên server khi chắc không cần rollback.
+- Cân nhắc thêm `evisatovietnam.vn` làm đối thủ của vietnam-visa; đổi tên brand "Vietnam-Visa" (tên vẫn khớp `vietnam-visa.org` của đối thủ, ~18 run).
