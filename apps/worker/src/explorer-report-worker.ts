@@ -1,10 +1,10 @@
 import { db } from "@workspace/lib/db/db";
-import { brands, competitors, explorerReports, promptRuns, prompts } from "@workspace/lib/db/schema";
+import { brands, competitors, explorerReports, promptRuns, prompts, runMentions } from "@workspace/lib/db/schema";
 import { assembleExplorerData, type RunInput } from "@workspace/lib/explorer/build-data";
 import { renderExplorerHtml } from "@workspace/lib/explorer/render-html";
 import { buildReportMetrics } from "@workspace/lib/explorer/report-metrics";
 import { generateNarrative } from "@workspace/lib/narrative/generate-narrative";
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 export interface ExplorerReportJobData {
 	reportId: string;
@@ -48,12 +48,14 @@ export async function processExplorerReportJob(ctx: ExplorerReportJobContext): P
 				promptId: promptRuns.promptId,
 				model: promptRuns.model,
 				provider: promptRuns.provider,
-				brandMentioned: promptRuns.brandMentioned,
-				brandPosition: promptRuns.brandPosition,
-				competitorsMentioned: promptRuns.competitorsMentioned,
+				brandMentioned: runMentions.brandMentioned,
+				brandPosition: sql<number | null>`(${runMentions.assessments}->'brand'->>'position')::int`,
+				competitorsMentioned: runMentions.competitorsMentioned,
 				createdAt: promptRuns.createdAt,
 			})
 			.from(promptRuns)
+			// Runs the worker hasn't judged yet have no mentions row; they show up in the next report.
+			.innerJoin(runMentions, eq(runMentions.runId, promptRuns.id))
 			.where(and(eq(promptRuns.brandId, brandId), gte(promptRuns.createdAt, windowStart)));
 
 		// Sample the newest N runs per (prompt, model) — the same set the report renders.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assembleExplorerData, type RunInput, type PromptInput, type CompetitorInput } from "./build-data";
+import { assembleExplorerData, type CompetitorInput, type PromptInput, type RunInput } from "./build-data";
 
 const prompts: PromptInput[] = [
 	{ id: "p1", value: "best china visa service", tags: ["china-visa", "bofu"] },

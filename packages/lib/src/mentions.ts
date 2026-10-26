@@ -1,61 +1,7 @@
-/**
- * Detection is deliberately blunt — case-insensitive substring matching over a
- * subject's names and bare domains — because an answer engine writes prose, not
- * markup, and any narrower rule (word boundaries, link parsing) misses the
- * "acme.com is the pick here" and "Acme's" shapes that are the whole signal.
- */
+import { createHash } from "node:crypto";
+import type { Brand, Competitor } from "./db/schema";
 
-/**
- * A name or alias written with a leading "=" (e.g. "=AVIA") only matches as a
- * whole word. Short brand names are often substrings of common words ("avia" in
- * "aviation", "vidi" in "providing"), and plain substring matching turns those
- * into phantom mentions.
- */
-export const WHOLE_WORD_PREFIX = "=";
-
-/** The label as people read it — drops the whole-word marker. */
-export function displayTerm(term: string): string {
-	return term.startsWith(WHOLE_WORD_PREFIX) ? term.slice(WHOLE_WORD_PREFIX.length).trim() : term.trim();
-}
-
-interface Needle {
-	text: string;
-	wholeWord: boolean;
-}
-
-function toNeedle(term: string): Needle {
-	return { text: displayTerm(term).toLowerCase(), wholeWord: term.startsWith(WHOLE_WORD_PREFIX) };
-}
-
-const WORD_CHAR = /[\p{L}\p{N}]/u;
-
-function isWordChar(ch: string | undefined): boolean {
-	return ch !== undefined && WORD_CHAR.test(ch);
-}
-
-function indexOfNeedle(contentLower: string, needle: Needle): number {
-	if (!needle.text) return -1;
-	if (!needle.wholeWord) return contentLower.indexOf(needle.text);
-	for (let i = contentLower.indexOf(needle.text); i !== -1; i = contentLower.indexOf(needle.text, i + 1)) {
-		if (!isWordChar(contentLower[i - 1]) && !isWordChar(contentLower[i + needle.text.length])) return i;
-	}
-	return -1;
-}
-
-function needlesOf(subject: MentionSubject): Needle[] {
-	return [
-		...[subject.name, ...(subject.aliases ?? [])].filter((n): n is string => !!n).map(toNeedle),
-		...(subject.domains ?? [])
-			.filter((d): d is string => !!d)
-			.map((d) => ({ text: normalizeDomain(d), wholeWord: false })),
-	];
-}
-
-export interface MentionSubject {
-	name: string;
-	aliases?: string[] | null;
-	domains?: (string | null | undefined)[] | null;
-}
+export const MENTIONS_VERSION = 1;
 
 /** Malformed input falls back to the raw value: a stored typo shouldn't fail a run. */
 export function normalizeDomain(urlOrDomain: string): string {
@@ -67,42 +13,109 @@ export function normalizeDomain(urlOrDomain: string): string {
 	}
 }
 
-export function mentionsSubject(contentLower: string, subject: MentionSubject): boolean {
-	return needlesOf(subject).some((needle) => indexOfNeedle(contentLower, needle) !== -1);
+export interface MentionConfig {
+	brand: { name: string; aliases: string[]; domains: string[] };
+	competitors: { name: string; aliases: string[]; domains: string[] }[];
 }
 
-/** Earliest index at which the subject is first named (by any name or bare domain), or -1. */
-export function firstMentionIndex(contentLower: string, subject: MentionSubject): number {
-	let best = -1;
-	for (const needle of needlesOf(subject)) {
-		const idx = indexOfNeedle(contentLower, needle);
-		if (idx !== -1 && (best === -1 || idx < best)) best = idx;
-	}
-	return best;
-}
-
-export function analyzeMentions(
-	content: string,
-	brand: MentionSubject,
-	competitors: readonly MentionSubject[],
-): { brandMentioned: boolean; competitorsMentioned: string[]; brandPosition: number | null } {
-	const contentLower = content.toLowerCase();
-	const brandIndex = firstMentionIndex(contentLower, brand);
-	const brandMentioned = brandIndex !== -1;
-
-	const mentioned: { name: string; index: number }[] = [];
-	for (const competitor of competitors) {
-		const idx = firstMentionIndex(contentLower, competitor);
-		if (idx !== -1) mentioned.push({ name: competitor.name, index: idx });
-	}
-
-	// 1-based rank of the brand among every mentioned entity, by order of first
-	// appearance. 1 = named before any competitor. Null when unmentioned.
-	const brandPosition = brandMentioned ? mentioned.filter((c) => c.index < brandIndex).length + 1 : null;
-
+export function mentionConfigFrom(brand: Brand, competitors: Competitor[]): MentionConfig {
 	return {
-		brandMentioned,
-		competitorsMentioned: mentioned.map((c) => c.name),
-		brandPosition,
+		brand: {
+			name: brand.name,
+			aliases: brand.aliases ?? [],
+			domains: [brand.website, ...(brand.additionalDomains ?? [])],
+		},
+		competitors: competitors.map((competitor) => ({
+			name: competitor.name,
+			aliases: competitor.aliases ?? [],
+			domains: competitor.domains ?? [],
+		})),
 	};
+}
+
+export type Sentiment = "positive" | "neutral" | "negative" | "mixed";
+export type NonMentionReason = "other_meaning" | "other_company" | "no_info";
+
+export interface MentionAssessment {
+	mentioned: boolean;
+	probability: number;
+	reason?: NonMentionReason;
+	sentiment?: Sentiment;
+	sentimentProbabilities?: Record<string, number>;
+	/**
+	 * Offsets into the run's stored text of the passage the assessment rests on: the one that most
+	 * carries its sentiment when it has one, otherwise the one that most decided the mention.
+	 */
+	passage?: { start: number; end: number };
+	/** For a mention: offset into the run's stored text of the first one. */
+	firstMention?: number;
+	mentionCount?: number;
+	/**
+	 * For a mention: 1 for the tracked company the answer names first, 2 for the next, and so on.
+	 * Only tracked companies are ranked; others the answer names are not known.
+	 */
+	position?: number;
+}
+
+export interface RunMentionAssessments {
+	/** Absent when the answer never names the brand. */
+	brand?: MentionAssessment;
+	/** Keyed by competitor name, as in `competitors_mentioned`; only competitors the answer names. */
+	competitors: Record<string, MentionAssessment>;
+	/**
+	 * The `subjectFingerprint` each subject was judged under, including subjects the answer never
+	 * names. A replay re-judges only the subjects whose fingerprint has changed.
+	 */
+	judged: { brand: string; competitors: Record<string, string> };
+}
+
+type Subject = MentionConfig["brand"];
+
+/**
+ * A subject as the judge reads it. Case is kept: the model sees the names as written, so recasing
+ * one is a different input.
+ */
+export function judgedSubject(subject: Subject): Subject {
+	const present = (values: string[]) => values.map((value) => value.trim()).filter(Boolean);
+	return {
+		name: subject.name.trim(),
+		aliases: present(subject.aliases),
+		domains: present(subject.domains).map(normalizeDomain),
+	};
+}
+
+/**
+ * What a subject's assessments depend on: the subject as judged, and the judge. Rival names are left
+ * out on purpose, so adding a competitor re-judges only that competitor rather than every subject
+ * whose list of rivals it joined; those rivals are context for the model, not what it decides.
+ */
+export function subjectFingerprint(subject: Subject, judgeVersion: string): string {
+	return digest({ ...judgedSubject(subject), judgeVersion });
+}
+
+const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 16);
+
+/**
+ * A letter or digit that continues a word. Not one from a script written without spaces between
+ * words (Chinese, Japanese, Thai…) or from Korean, whose particles attach to the word before them:
+ * "Elmo是…" and "Elmo는…" both name Elmo.
+ */
+const WORD_CHAR = String.raw`[[\p{L}\p{N}]--[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]]`;
+
+/** A term inside a longer word ("ace" in "place") is never the subject, so only whole words match. */
+export function wholeWordPattern(term: string): RegExp {
+	const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	return new RegExp(`(?<!${WORD_CHAR})${escaped}(?!${WORD_CHAR})`, "giv");
+}
+
+/**
+ * Identifies the judge and brand config a run's mentions were derived from. It's made of each
+ * subject's fingerprint, so it changes exactly when some subject must be re-judged.
+ */
+export function mentionsStamp(config: MentionConfig, judgeVersion: string): string {
+	const subjects = digest({
+		brand: subjectFingerprint(config.brand, judgeVersion),
+		competitors: config.competitors.map((c) => [c.name, subjectFingerprint(c, judgeVersion)]).sort(),
+	});
+	return `${MENTIONS_VERSION}:${subjects}:judge-${judgeVersion}`;
 }

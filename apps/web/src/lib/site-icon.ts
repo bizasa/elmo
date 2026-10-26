@@ -5,8 +5,7 @@
  * that site's icon. Nothing is stored on our side: the browser requests the
  * icon directly, so a brand's icon appears the moment its domain is set.
  */
-import { displayTerm } from "@workspace/lib/mentions";
-import { cleanAndValidateDomain } from "@/lib/domain-categories";
+import { cleanAndValidateDomain } from "@workspace/lib/citations/domain-categories";
 
 const FAVICON_ENDPOINT = "https://t1.gstatic.com/faviconV2";
 
@@ -64,7 +63,7 @@ export function buildBrandDomainIndex(subjects: SiteIconSubject[]): Map<string, 
 		if (!domain) continue;
 
 		for (const label of [subject.name, ...(subject.aliases ?? [])]) {
-			const key = label ? displayTerm(label).toLowerCase() : undefined;
+			const key = label?.trim().toLowerCase();
 			if (key && !index.has(key)) index.set(key, domain);
 		}
 	}

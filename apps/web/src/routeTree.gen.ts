@@ -33,6 +33,7 @@ import { Route as AuthedAppIndexRouteImport } from './routes/_authed/app/index'
 import { Route as AuthedAppNewRouteImport } from './routes/_authed/app/new'
 import { Route as AuthedReportsIndexRouteImport } from './routes/_authed/reports/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiExplorerReportIdRouteImport } from './routes/api/explorer/$reportId'
 import { Route as ApiManifestIndexRouteImport } from './routes/api/manifest/index'
 import { Route as ApiMcpSplatRouteImport } from './routes/api/mcp/$'
 import { Route as ApiOgIndexRouteImport } from './routes/api/og/index'
@@ -73,6 +74,7 @@ import { Route as AuthedAppOrgOrgSettingsBillingRouteImport } from './routes/_au
 import { Route as AuthedAppOrgOrgSettingsBrandsRouteImport } from './routes/_authed/app/org/$org/settings/brands'
 import { Route as AuthedAppOrgOrgSettingsMcpRouteImport } from './routes/_authed/app/org/$org/settings/mcp'
 import { Route as AuthedAppOrgOrgSettingsMembersRouteImport } from './routes/_authed/app/org/$org/settings/members'
+import { Route as AuthedAppOrgOrgSettingsSkillRouteImport } from './routes/_authed/app/org/$org/settings/skill'
 import { Route as ApiV1BrandsBrandIdCitationsDomainsRouteImport } from './routes/api/v1/brands/$brandId/citations/domains'
 import { Route as ApiV1BrandsBrandIdCitationsUrlsRouteImport } from './routes/api/v1/brands/$brandId/citations/urls'
 import { Route as ApiV1BrandsBrandIdTagsIndexRouteImport } from './routes/api/v1/brands/$brandId/tags/index'
@@ -80,10 +82,12 @@ import { Route as ApiV1PromptsPromptIdRunsIndexRouteImport } from './routes/api/
 import { Route as ApiV1PromptsPromptIdRunsRunIdRouteImport } from './routes/api/v1/prompts/$promptId/runs/$runId'
 import { Route as AuthedAppOrgOrgBrandBrandIndexRouteImport } from './routes/_authed/app/org/$org/brand/$brand/index'
 import { Route as AuthedAppOrgOrgBrandBrandSplatRouteImport } from './routes/_authed/app/org/$org/brand/$brand/$'
+import { Route as AuthedAppOrgOrgBrandBrandAiExplorerRouteImport } from './routes/_authed/app/org/$org/brand/$brand/ai-explorer'
 import { Route as AuthedAppOrgOrgBrandBrandCitationsRouteImport } from './routes/_authed/app/org/$org/brand/$brand/citations'
 import { Route as AuthedAppOrgOrgBrandBrandOpportunitiesRouteImport } from './routes/_authed/app/org/$org/brand/$brand/opportunities'
 import { Route as AuthedAppOrgOrgBrandBrandQueryFanOutRouteImport } from './routes/_authed/app/org/$org/brand/$brand/query-fan-out'
 import { Route as AuthedAppOrgOrgBrandBrandResponsesRouteImport } from './routes/_authed/app/org/$org/brand/$brand/responses'
+import { Route as AuthedAppOrgOrgBrandBrandSentimentRouteImport } from './routes/_authed/app/org/$org/brand/$brand/sentiment'
 import { Route as AuthedAppOrgOrgBrandBrandShareOfVoiceRouteImport } from './routes/_authed/app/org/$org/brand/$brand/share-of-voice'
 import { Route as AuthedAppOrgOrgBrandBrandVisibilityRouteImport } from './routes/_authed/app/org/$org/brand/$brand/visibility'
 import { Route as AuthedAppOrgOrgBrandBrandPromptsIndexRouteImport } from './routes/_authed/app/org/$org/brand/$brand/prompts/index'
@@ -217,6 +221,11 @@ const AuthedReportsIndexRoute = AuthedReportsIndexRouteImport.update({
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiExplorerReportIdRoute = ApiExplorerReportIdRouteImport.update({
+  id: '/api/explorer/$reportId',
+  path: '/api/explorer/$reportId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiManifestIndexRoute = ApiManifestIndexRouteImport.update({
@@ -437,6 +446,12 @@ const AuthedAppOrgOrgSettingsMembersRoute =
     path: '/members',
     getParentRoute: () => AuthedAppOrgOrgSettingsRoute,
   } as any)
+const AuthedAppOrgOrgSettingsSkillRoute =
+  AuthedAppOrgOrgSettingsSkillRouteImport.update({
+    id: '/skill',
+    path: '/skill',
+    getParentRoute: () => AuthedAppOrgOrgSettingsRoute,
+  } as any)
 const ApiV1BrandsBrandIdCitationsDomainsRoute =
   ApiV1BrandsBrandIdCitationsDomainsRouteImport.update({
     id: '/citations/domains',
@@ -479,6 +494,12 @@ const AuthedAppOrgOrgBrandBrandSplatRoute =
     path: '/$',
     getParentRoute: () => AuthedAppOrgOrgBrandBrandRoute,
   } as any)
+const AuthedAppOrgOrgBrandBrandAiExplorerRoute =
+  AuthedAppOrgOrgBrandBrandAiExplorerRouteImport.update({
+    id: '/ai-explorer',
+    path: '/ai-explorer',
+    getParentRoute: () => AuthedAppOrgOrgBrandBrandRoute,
+  } as any)
 const AuthedAppOrgOrgBrandBrandCitationsRoute =
   AuthedAppOrgOrgBrandBrandCitationsRouteImport.update({
     id: '/citations',
@@ -501,6 +522,12 @@ const AuthedAppOrgOrgBrandBrandResponsesRoute =
   AuthedAppOrgOrgBrandBrandResponsesRouteImport.update({
     id: '/responses',
     path: '/responses',
+    getParentRoute: () => AuthedAppOrgOrgBrandBrandRoute,
+  } as any)
+const AuthedAppOrgOrgBrandBrandSentimentRoute =
+  AuthedAppOrgOrgBrandBrandSentimentRouteImport.update({
+    id: '/sentiment',
+    path: '/sentiment',
     getParentRoute: () => AuthedAppOrgOrgBrandBrandRoute,
   } as any)
 const AuthedAppOrgOrgBrandBrandShareOfVoiceRoute =
@@ -583,6 +610,7 @@ export interface FileRoutesByFullPath {
   '/admin/workflows': typeof AuthedAdminWorkflowsRoute
   '/app/new': typeof AuthedAppNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/api/mcp/$': typeof ApiMcpSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/api/v1/me': typeof ApiV1MeRoute
@@ -627,6 +655,7 @@ export interface FileRoutesByFullPath {
   '/app/org/$org/settings/brands': typeof AuthedAppOrgOrgSettingsBrandsRoute
   '/app/org/$org/settings/mcp': typeof AuthedAppOrgOrgSettingsMcpRoute
   '/app/org/$org/settings/members': typeof AuthedAppOrgOrgSettingsMembersRoute
+  '/app/org/$org/settings/skill': typeof AuthedAppOrgOrgSettingsSkillRoute
   '/api/v1/brands/$brandId/citations/domains': typeof ApiV1BrandsBrandIdCitationsDomainsRoute
   '/api/v1/brands/$brandId/citations/urls': typeof ApiV1BrandsBrandIdCitationsUrlsRoute
   '/api/v1/prompts/$promptId/runs/$runId': typeof ApiV1PromptsPromptIdRunsRunIdRoute
@@ -634,10 +663,12 @@ export interface FileRoutesByFullPath {
   '/api/v1/brands/$brandId/tags/': typeof ApiV1BrandsBrandIdTagsIndexRoute
   '/api/v1/prompts/$promptId/runs/': typeof ApiV1PromptsPromptIdRunsIndexRoute
   '/app/org/$org/brand/$brand/$': typeof AuthedAppOrgOrgBrandBrandSplatRoute
+  '/app/org/$org/brand/$brand/ai-explorer': typeof AuthedAppOrgOrgBrandBrandAiExplorerRoute
   '/app/org/$org/brand/$brand/citations': typeof AuthedAppOrgOrgBrandBrandCitationsRoute
   '/app/org/$org/brand/$brand/opportunities': typeof AuthedAppOrgOrgBrandBrandOpportunitiesRoute
   '/app/org/$org/brand/$brand/query-fan-out': typeof AuthedAppOrgOrgBrandBrandQueryFanOutRoute
   '/app/org/$org/brand/$brand/responses': typeof AuthedAppOrgOrgBrandBrandResponsesRoute
+  '/app/org/$org/brand/$brand/sentiment': typeof AuthedAppOrgOrgBrandBrandSentimentRoute
   '/app/org/$org/brand/$brand/share-of-voice': typeof AuthedAppOrgOrgBrandBrandShareOfVoiceRoute
   '/app/org/$org/brand/$brand/visibility': typeof AuthedAppOrgOrgBrandBrandVisibilityRoute
   '/app/org/$org/brand/$brand/': typeof AuthedAppOrgOrgBrandBrandIndexRoute
@@ -666,6 +697,7 @@ export interface FileRoutesByTo {
   '/admin/workflows': typeof AuthedAdminWorkflowsRoute
   '/app/new': typeof AuthedAppNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/api/mcp/$': typeof ApiMcpSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/api/v1/me': typeof ApiV1MeRoute
@@ -707,6 +739,7 @@ export interface FileRoutesByTo {
   '/app/org/$org/settings/brands': typeof AuthedAppOrgOrgSettingsBrandsRoute
   '/app/org/$org/settings/mcp': typeof AuthedAppOrgOrgSettingsMcpRoute
   '/app/org/$org/settings/members': typeof AuthedAppOrgOrgSettingsMembersRoute
+  '/app/org/$org/settings/skill': typeof AuthedAppOrgOrgSettingsSkillRoute
   '/api/v1/brands/$brandId/citations/domains': typeof ApiV1BrandsBrandIdCitationsDomainsRoute
   '/api/v1/brands/$brandId/citations/urls': typeof ApiV1BrandsBrandIdCitationsUrlsRoute
   '/api/v1/prompts/$promptId/runs/$runId': typeof ApiV1PromptsPromptIdRunsRunIdRoute
@@ -714,10 +747,12 @@ export interface FileRoutesByTo {
   '/api/v1/brands/$brandId/tags': typeof ApiV1BrandsBrandIdTagsIndexRoute
   '/api/v1/prompts/$promptId/runs': typeof ApiV1PromptsPromptIdRunsIndexRoute
   '/app/org/$org/brand/$brand/$': typeof AuthedAppOrgOrgBrandBrandSplatRoute
+  '/app/org/$org/brand/$brand/ai-explorer': typeof AuthedAppOrgOrgBrandBrandAiExplorerRoute
   '/app/org/$org/brand/$brand/citations': typeof AuthedAppOrgOrgBrandBrandCitationsRoute
   '/app/org/$org/brand/$brand/opportunities': typeof AuthedAppOrgOrgBrandBrandOpportunitiesRoute
   '/app/org/$org/brand/$brand/query-fan-out': typeof AuthedAppOrgOrgBrandBrandQueryFanOutRoute
   '/app/org/$org/brand/$brand/responses': typeof AuthedAppOrgOrgBrandBrandResponsesRoute
+  '/app/org/$org/brand/$brand/sentiment': typeof AuthedAppOrgOrgBrandBrandSentimentRoute
   '/app/org/$org/brand/$brand/share-of-voice': typeof AuthedAppOrgOrgBrandBrandShareOfVoiceRoute
   '/app/org/$org/brand/$brand/visibility': typeof AuthedAppOrgOrgBrandBrandVisibilityRoute
   '/app/org/$org/brand/$brand': typeof AuthedAppOrgOrgBrandBrandIndexRoute
@@ -751,6 +786,7 @@ export interface FileRoutesById {
   '/_authed/admin/workflows': typeof AuthedAdminWorkflowsRoute
   '/_authed/app/new': typeof AuthedAppNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/explorer/$reportId': typeof ApiExplorerReportIdRoute
   '/api/mcp/$': typeof ApiMcpSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/api/v1/me': typeof ApiV1MeRoute
@@ -795,6 +831,7 @@ export interface FileRoutesById {
   '/_authed/app/org/$org/settings/brands': typeof AuthedAppOrgOrgSettingsBrandsRoute
   '/_authed/app/org/$org/settings/mcp': typeof AuthedAppOrgOrgSettingsMcpRoute
   '/_authed/app/org/$org/settings/members': typeof AuthedAppOrgOrgSettingsMembersRoute
+  '/_authed/app/org/$org/settings/skill': typeof AuthedAppOrgOrgSettingsSkillRoute
   '/api/v1/brands/$brandId/citations/domains': typeof ApiV1BrandsBrandIdCitationsDomainsRoute
   '/api/v1/brands/$brandId/citations/urls': typeof ApiV1BrandsBrandIdCitationsUrlsRoute
   '/api/v1/prompts/$promptId/runs/$runId': typeof ApiV1PromptsPromptIdRunsRunIdRoute
@@ -802,10 +839,12 @@ export interface FileRoutesById {
   '/api/v1/brands/$brandId/tags/': typeof ApiV1BrandsBrandIdTagsIndexRoute
   '/api/v1/prompts/$promptId/runs/': typeof ApiV1PromptsPromptIdRunsIndexRoute
   '/_authed/app/org/$org/brand/$brand/$': typeof AuthedAppOrgOrgBrandBrandSplatRoute
+  '/_authed/app/org/$org/brand/$brand/ai-explorer': typeof AuthedAppOrgOrgBrandBrandAiExplorerRoute
   '/_authed/app/org/$org/brand/$brand/citations': typeof AuthedAppOrgOrgBrandBrandCitationsRoute
   '/_authed/app/org/$org/brand/$brand/opportunities': typeof AuthedAppOrgOrgBrandBrandOpportunitiesRoute
   '/_authed/app/org/$org/brand/$brand/query-fan-out': typeof AuthedAppOrgOrgBrandBrandQueryFanOutRoute
   '/_authed/app/org/$org/brand/$brand/responses': typeof AuthedAppOrgOrgBrandBrandResponsesRoute
+  '/_authed/app/org/$org/brand/$brand/sentiment': typeof AuthedAppOrgOrgBrandBrandSentimentRoute
   '/_authed/app/org/$org/brand/$brand/share-of-voice': typeof AuthedAppOrgOrgBrandBrandShareOfVoiceRoute
   '/_authed/app/org/$org/brand/$brand/visibility': typeof AuthedAppOrgOrgBrandBrandVisibilityRoute
   '/_authed/app/org/$org/brand/$brand/': typeof AuthedAppOrgOrgBrandBrandIndexRoute
@@ -839,6 +878,7 @@ export interface FileRouteTypes {
     | '/admin/workflows'
     | '/app/new'
     | '/api/auth/$'
+    | '/api/explorer/$reportId'
     | '/api/mcp/$'
     | '/api/v1/$'
     | '/api/v1/me'
@@ -883,6 +923,7 @@ export interface FileRouteTypes {
     | '/app/org/$org/settings/brands'
     | '/app/org/$org/settings/mcp'
     | '/app/org/$org/settings/members'
+    | '/app/org/$org/settings/skill'
     | '/api/v1/brands/$brandId/citations/domains'
     | '/api/v1/brands/$brandId/citations/urls'
     | '/api/v1/prompts/$promptId/runs/$runId'
@@ -890,10 +931,12 @@ export interface FileRouteTypes {
     | '/api/v1/brands/$brandId/tags/'
     | '/api/v1/prompts/$promptId/runs/'
     | '/app/org/$org/brand/$brand/$'
+    | '/app/org/$org/brand/$brand/ai-explorer'
     | '/app/org/$org/brand/$brand/citations'
     | '/app/org/$org/brand/$brand/opportunities'
     | '/app/org/$org/brand/$brand/query-fan-out'
     | '/app/org/$org/brand/$brand/responses'
+    | '/app/org/$org/brand/$brand/sentiment'
     | '/app/org/$org/brand/$brand/share-of-voice'
     | '/app/org/$org/brand/$brand/visibility'
     | '/app/org/$org/brand/$brand/'
@@ -922,6 +965,7 @@ export interface FileRouteTypes {
     | '/admin/workflows'
     | '/app/new'
     | '/api/auth/$'
+    | '/api/explorer/$reportId'
     | '/api/mcp/$'
     | '/api/v1/$'
     | '/api/v1/me'
@@ -963,6 +1007,7 @@ export interface FileRouteTypes {
     | '/app/org/$org/settings/brands'
     | '/app/org/$org/settings/mcp'
     | '/app/org/$org/settings/members'
+    | '/app/org/$org/settings/skill'
     | '/api/v1/brands/$brandId/citations/domains'
     | '/api/v1/brands/$brandId/citations/urls'
     | '/api/v1/prompts/$promptId/runs/$runId'
@@ -970,10 +1015,12 @@ export interface FileRouteTypes {
     | '/api/v1/brands/$brandId/tags'
     | '/api/v1/prompts/$promptId/runs'
     | '/app/org/$org/brand/$brand/$'
+    | '/app/org/$org/brand/$brand/ai-explorer'
     | '/app/org/$org/brand/$brand/citations'
     | '/app/org/$org/brand/$brand/opportunities'
     | '/app/org/$org/brand/$brand/query-fan-out'
     | '/app/org/$org/brand/$brand/responses'
+    | '/app/org/$org/brand/$brand/sentiment'
     | '/app/org/$org/brand/$brand/share-of-voice'
     | '/app/org/$org/brand/$brand/visibility'
     | '/app/org/$org/brand/$brand'
@@ -1006,6 +1053,7 @@ export interface FileRouteTypes {
     | '/_authed/admin/workflows'
     | '/_authed/app/new'
     | '/api/auth/$'
+    | '/api/explorer/$reportId'
     | '/api/mcp/$'
     | '/api/v1/$'
     | '/api/v1/me'
@@ -1050,6 +1098,7 @@ export interface FileRouteTypes {
     | '/_authed/app/org/$org/settings/brands'
     | '/_authed/app/org/$org/settings/mcp'
     | '/_authed/app/org/$org/settings/members'
+    | '/_authed/app/org/$org/settings/skill'
     | '/api/v1/brands/$brandId/citations/domains'
     | '/api/v1/brands/$brandId/citations/urls'
     | '/api/v1/prompts/$promptId/runs/$runId'
@@ -1057,10 +1106,12 @@ export interface FileRouteTypes {
     | '/api/v1/brands/$brandId/tags/'
     | '/api/v1/prompts/$promptId/runs/'
     | '/_authed/app/org/$org/brand/$brand/$'
+    | '/_authed/app/org/$org/brand/$brand/ai-explorer'
     | '/_authed/app/org/$org/brand/$brand/citations'
     | '/_authed/app/org/$org/brand/$brand/opportunities'
     | '/_authed/app/org/$org/brand/$brand/query-fan-out'
     | '/_authed/app/org/$org/brand/$brand/responses'
+    | '/_authed/app/org/$org/brand/$brand/sentiment'
     | '/_authed/app/org/$org/brand/$brand/share-of-voice'
     | '/_authed/app/org/$org/brand/$brand/visibility'
     | '/_authed/app/org/$org/brand/$brand/'
@@ -1086,6 +1137,7 @@ export interface RootRouteChildren {
   DotwellKnownOauthAuthorizationServerSplatRoute: typeof DotwellKnownOauthAuthorizationServerSplatRoute
   DotwellKnownOauthProtectedResourceSplatRoute: typeof DotwellKnownOauthProtectedResourceSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiExplorerReportIdRoute: typeof ApiExplorerReportIdRoute
   ApiMcpSplatRoute: typeof ApiMcpSplatRoute
   ApiV1SplatRoute: typeof ApiV1SplatRoute
   ApiV1MeRoute: typeof ApiV1MeRoute
@@ -1279,6 +1331,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/explorer/$reportId': {
+      id: '/api/explorer/$reportId'
+      path: '/api/explorer/$reportId'
+      fullPath: '/api/explorer/$reportId'
+      preLoaderRoute: typeof ApiExplorerReportIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/manifest/': {
@@ -1561,6 +1620,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedAppOrgOrgSettingsMembersRouteImport
       parentRoute: typeof AuthedAppOrgOrgSettingsRoute
     }
+    '/_authed/app/org/$org/settings/skill': {
+      id: '/_authed/app/org/$org/settings/skill'
+      path: '/skill'
+      fullPath: '/app/org/$org/settings/skill'
+      preLoaderRoute: typeof AuthedAppOrgOrgSettingsSkillRouteImport
+      parentRoute: typeof AuthedAppOrgOrgSettingsRoute
+    }
     '/api/v1/brands/$brandId/citations/domains': {
       id: '/api/v1/brands/$brandId/citations/domains'
       path: '/citations/domains'
@@ -1610,6 +1676,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedAppOrgOrgBrandBrandSplatRouteImport
       parentRoute: typeof AuthedAppOrgOrgBrandBrandRoute
     }
+    '/_authed/app/org/$org/brand/$brand/ai-explorer': {
+      id: '/_authed/app/org/$org/brand/$brand/ai-explorer'
+      path: '/ai-explorer'
+      fullPath: '/app/org/$org/brand/$brand/ai-explorer'
+      preLoaderRoute: typeof AuthedAppOrgOrgBrandBrandAiExplorerRouteImport
+      parentRoute: typeof AuthedAppOrgOrgBrandBrandRoute
+    }
     '/_authed/app/org/$org/brand/$brand/citations': {
       id: '/_authed/app/org/$org/brand/$brand/citations'
       path: '/citations'
@@ -1636,6 +1709,13 @@ declare module '@tanstack/react-router' {
       path: '/responses'
       fullPath: '/app/org/$org/brand/$brand/responses'
       preLoaderRoute: typeof AuthedAppOrgOrgBrandBrandResponsesRouteImport
+      parentRoute: typeof AuthedAppOrgOrgBrandBrandRoute
+    }
+    '/_authed/app/org/$org/brand/$brand/sentiment': {
+      id: '/_authed/app/org/$org/brand/$brand/sentiment'
+      path: '/sentiment'
+      fullPath: '/app/org/$org/brand/$brand/sentiment'
+      preLoaderRoute: typeof AuthedAppOrgOrgBrandBrandSentimentRouteImport
       parentRoute: typeof AuthedAppOrgOrgBrandBrandRoute
     }
     '/_authed/app/org/$org/brand/$brand/share-of-voice': {
@@ -1734,6 +1814,7 @@ interface AuthedAppOrgOrgSettingsRouteChildren {
   AuthedAppOrgOrgSettingsBrandsRoute: typeof AuthedAppOrgOrgSettingsBrandsRoute
   AuthedAppOrgOrgSettingsMcpRoute: typeof AuthedAppOrgOrgSettingsMcpRoute
   AuthedAppOrgOrgSettingsMembersRoute: typeof AuthedAppOrgOrgSettingsMembersRoute
+  AuthedAppOrgOrgSettingsSkillRoute: typeof AuthedAppOrgOrgSettingsSkillRoute
   AuthedAppOrgOrgSettingsIndexRoute: typeof AuthedAppOrgOrgSettingsIndexRoute
 }
 
@@ -1745,6 +1826,7 @@ const AuthedAppOrgOrgSettingsRouteChildren: AuthedAppOrgOrgSettingsRouteChildren
     AuthedAppOrgOrgSettingsBrandsRoute: AuthedAppOrgOrgSettingsBrandsRoute,
     AuthedAppOrgOrgSettingsMcpRoute: AuthedAppOrgOrgSettingsMcpRoute,
     AuthedAppOrgOrgSettingsMembersRoute: AuthedAppOrgOrgSettingsMembersRoute,
+    AuthedAppOrgOrgSettingsSkillRoute: AuthedAppOrgOrgSettingsSkillRoute,
     AuthedAppOrgOrgSettingsIndexRoute: AuthedAppOrgOrgSettingsIndexRoute,
   }
 
@@ -1755,10 +1837,12 @@ const AuthedAppOrgOrgSettingsRouteWithChildren =
 
 interface AuthedAppOrgOrgBrandBrandRouteChildren {
   AuthedAppOrgOrgBrandBrandSplatRoute: typeof AuthedAppOrgOrgBrandBrandSplatRoute
+  AuthedAppOrgOrgBrandBrandAiExplorerRoute: typeof AuthedAppOrgOrgBrandBrandAiExplorerRoute
   AuthedAppOrgOrgBrandBrandCitationsRoute: typeof AuthedAppOrgOrgBrandBrandCitationsRoute
   AuthedAppOrgOrgBrandBrandOpportunitiesRoute: typeof AuthedAppOrgOrgBrandBrandOpportunitiesRoute
   AuthedAppOrgOrgBrandBrandQueryFanOutRoute: typeof AuthedAppOrgOrgBrandBrandQueryFanOutRoute
   AuthedAppOrgOrgBrandBrandResponsesRoute: typeof AuthedAppOrgOrgBrandBrandResponsesRoute
+  AuthedAppOrgOrgBrandBrandSentimentRoute: typeof AuthedAppOrgOrgBrandBrandSentimentRoute
   AuthedAppOrgOrgBrandBrandShareOfVoiceRoute: typeof AuthedAppOrgOrgBrandBrandShareOfVoiceRoute
   AuthedAppOrgOrgBrandBrandVisibilityRoute: typeof AuthedAppOrgOrgBrandBrandVisibilityRoute
   AuthedAppOrgOrgBrandBrandIndexRoute: typeof AuthedAppOrgOrgBrandBrandIndexRoute
@@ -1775,6 +1859,8 @@ interface AuthedAppOrgOrgBrandBrandRouteChildren {
 const AuthedAppOrgOrgBrandBrandRouteChildren: AuthedAppOrgOrgBrandBrandRouteChildren =
   {
     AuthedAppOrgOrgBrandBrandSplatRoute: AuthedAppOrgOrgBrandBrandSplatRoute,
+    AuthedAppOrgOrgBrandBrandAiExplorerRoute:
+      AuthedAppOrgOrgBrandBrandAiExplorerRoute,
     AuthedAppOrgOrgBrandBrandCitationsRoute:
       AuthedAppOrgOrgBrandBrandCitationsRoute,
     AuthedAppOrgOrgBrandBrandOpportunitiesRoute:
@@ -1783,6 +1869,8 @@ const AuthedAppOrgOrgBrandBrandRouteChildren: AuthedAppOrgOrgBrandBrandRouteChil
       AuthedAppOrgOrgBrandBrandQueryFanOutRoute,
     AuthedAppOrgOrgBrandBrandResponsesRoute:
       AuthedAppOrgOrgBrandBrandResponsesRoute,
+    AuthedAppOrgOrgBrandBrandSentimentRoute:
+      AuthedAppOrgOrgBrandBrandSentimentRoute,
     AuthedAppOrgOrgBrandBrandShareOfVoiceRoute:
       AuthedAppOrgOrgBrandBrandShareOfVoiceRoute,
     AuthedAppOrgOrgBrandBrandVisibilityRoute:
@@ -1948,6 +2036,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownOauthProtectedResourceSplatRoute:
     DotwellKnownOauthProtectedResourceSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiExplorerReportIdRoute: ApiExplorerReportIdRoute,
   ApiMcpSplatRoute: ApiMcpSplatRoute,
   ApiV1SplatRoute: ApiV1SplatRoute,
   ApiV1MeRoute: ApiV1MeRoute,

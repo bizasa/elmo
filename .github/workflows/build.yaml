@@ -12,8 +12,8 @@
 # check-types, so a better-auth bump or a new schema-bearing plugin fails here
 # instead of leaving drizzle-kit to snapshot a stale schema.
 #
-# Keep it excluded from Biome (see biome.json) — the router generator formats
-# its own output with Prettier, and a formatter fighting it would make every
+# Keep both excluded from Biome (see biome.json) — their generators format
+# their own output with Prettier, and a formatter fighting them would make every
 # build dirty this job.
 
 name: Build
@@ -92,8 +92,12 @@ jobs:
       - name: Unit tests
         run: pnpm turbo test
 
+      # One package at a time: the lib suite truncates tables the others write to.
       - name: Integration tests
-        run: pnpm -C apps/web test:integration
+        run: |
+          pnpm -C apps/web test:integration
+          pnpm -C apps/worker test:integration
+          pnpm -C packages/lib test:integration
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/elmo_test
           # Off UTC on purpose: a timestamp that loses its zone between Postgres

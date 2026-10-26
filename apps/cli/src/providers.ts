@@ -12,7 +12,7 @@ const BRIGHTDATA_AFFILIATE = "https://get.brightdata.com/elmo?sid=cli";
 const OXYLABS_AFFILIATE = "https://oxylabs.go2cloud.org/aff_c?offer_id=7&aff_id=2263&url_id=32";
 const SEARCHAPI_AFFILIATE = "https://www.searchapi.io/?via=elmo";
 const OLOSTEP_AFFILIATE = "https://olostep.com/?ref=elmo";
-const DATAFORSEO_AFFILIATE = "https://dataforseo.com/?aff=184966";
+const DATAFORSEO_AFFILIATE = "https://try.dataforseo.com/elmo";
 
 export type RecommendedScraper = "cloro" | "brightdata" | "oxylabs" | "searchapi" | "olostep" | "dataforseo";
 export type DirectApiProvider = "openrouter" | "anthropic" | "openai" | "mistral";
@@ -54,9 +54,9 @@ const DATAFORSEO_TARGETS = [
 	{ model: "perplexity", kind: "api" },
 ] as const;
 
-const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
-const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5";
-const DEFAULT_OPENROUTER_MODEL = "anthropic/claude-sonnet-5";
+const DEFAULT_OPENAI_MODEL = "gpt-6-luna";
+const DEFAULT_ANTHROPIC_MODEL = "claude-haiku-5-5";
+const DEFAULT_OPENROUTER_MODEL = "anthropic/claude-haiku-5.5";
 const DEFAULT_MISTRAL_MODEL = "mistral-medium-latest";
 
 type Credential = {
@@ -292,12 +292,12 @@ export async function collectProvider(spec: ProviderSpec, env: EnvMap, targets: 
 	}
 
 	if (spec.picker) {
-		const selected = (await p.multiselect({
+		const selected = await p.multiselect({
 			message: spec.picker.message,
 			options: spec.picker.options,
 			required: spec.picker.required,
 			initialValues: [...spec.picker.initialValues],
-		})) as string[] | symbol;
+		});
 		assertNotCancelled(selected);
 		targets.push(...selected);
 	}

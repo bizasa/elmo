@@ -1,8 +1,8 @@
-import type { Job } from "pg-boss";
 import { db } from "@workspace/lib/db/db";
 import { explorerReports } from "@workspace/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { processExplorerReportJob, type ExplorerReportJobData } from "../explorer-report-worker";
+import type { Job } from "pg-boss";
+import { type ExplorerReportJobData, processExplorerReportJob } from "../explorer-report-worker";
 
 export async function generateExplorerReportJob(jobs: Job<ExplorerReportJobData>[]): Promise<void> {
 	for (const job of jobs) {

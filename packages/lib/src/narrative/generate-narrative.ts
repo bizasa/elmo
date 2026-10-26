@@ -1,4 +1,4 @@
-import { narrativeSchema, type Narrative, type ReportMetrics } from "../explorer/types";
+import { type Narrative, narrativeSchema, type ReportMetrics } from "../explorer/types";
 import { getProvider } from "../providers";
 import { getVilaoModelChain } from "./config";
 import { callVilaoChat } from "./vilao-client";

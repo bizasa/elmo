@@ -3,8 +3,9 @@
  * page, scoped to the current brand. Access is gated by the parent brand layout
  * (any user who can view the brand can generate/view reports for it).
  */
-import { createFileRoute } from "@tanstack/react-router";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card, CardContent } from "@workspace/ui/components/card";
@@ -49,10 +50,7 @@ function AiExplorerPage() {
 	});
 
 	return (
-		<PageHeader
-			title="AI Mentions Explorer"
-			subtitle="Pick a window and language to generate a report."
-		>
+		<PageHeader title="AI Mentions Explorer" subtitle="Pick a window and language to generate a report.">
 			<div className="space-y-6 max-w-4xl">
 				<div className="space-y-4">
 					<h2 className="text-2xl font-semibold">Generate New Report</h2>
@@ -62,7 +60,7 @@ function AiExplorerPage() {
 							<div className="grid gap-4 sm:grid-cols-2">
 								<div className="space-y-1.5">
 									<Label>Window</Label>
-									<Select value={windowDays} onValueChange={setWindowDays}>
+									<Select value={windowDays} onValueChange={(v) => v && setWindowDays(v)}>
 										<SelectTrigger className="w-full">
 											<SelectValue />
 										</SelectTrigger>
@@ -75,7 +73,7 @@ function AiExplorerPage() {
 								</div>
 								<div className="space-y-1.5">
 									<Label>Language</Label>
-									<Select value={language} onValueChange={(v) => setLanguage(v as "en" | "vi")}>
+									<Select value={language} onValueChange={(v) => v && setLanguage(v as "en" | "vi")}>
 										<SelectTrigger className="w-full">
 											<SelectValue />
 										</SelectTrigger>
@@ -112,10 +110,7 @@ function AiExplorerPage() {
 					) : (
 						<div className="space-y-3">
 							{reports.map((r) => (
-								<div
-									key={r.id}
-									className="bg-muted border rounded-lg p-4 flex items-center justify-between"
-								>
+								<div key={r.id} className="bg-muted border rounded-lg p-4 flex items-center justify-between">
 									<div className="text-sm">
 										<span className="font-semibold text-lg">{r.brandName}</span>
 										<span className="text-muted-foreground">

@@ -1,4 +1,3 @@
-import { displayTerm } from "../mentions";
 import { extractTextContent } from "../text-extraction";
 import { buildExcerpt } from "./excerpt";
 import type { ExplorerData, ExplorerRecord } from "./types";
@@ -69,7 +68,7 @@ export function assembleExplorerData(args: AssembleArgs): ExplorerData {
 	const promptById = new Map(prompts.map((p) => [p.id, p]));
 
 	const brandTerms = [brand.name, ...brand.aliases, domainStem(brand.website)]
-		.map((t) => displayTerm(t).toLowerCase())
+		.map((t) => t.trim().toLowerCase())
 		.filter(Boolean);
 
 	// Group runs by prompt+model, keep the N newest.
@@ -113,7 +112,7 @@ export function assembleExplorerData(args: AssembleArgs): ExplorerData {
 	const trackedNames = new Set(competitors.map((c) => c.name));
 	const alts: Record<string, string[]> = {};
 	for (const c of competitors) {
-		alts[c.name] = [c.name.toLowerCase(), ...c.aliases.map((a) => displayTerm(a).toLowerCase())];
+		alts[c.name] = [c.name.toLowerCase(), ...c.aliases.map((a) => a.trim().toLowerCase())];
 	}
 	const untracked = new Set<string>();
 	for (const r of records) for (const c of r.c) if (!trackedNames.has(c)) untracked.add(c);
