@@ -170,7 +170,7 @@ Config: `~/.elmo/.env` (mode 600, chứa secrets + ADMIN_API_KEYS), `~/.elmo/elm
 
 ---
 
-## 12. Cập nhật 2026-09-29 → 2026-10-14 (trạng thái HIỆN TẠI)
+## 12. Cập nhật 2026-09-29 → 2026-10-14 (đã cũ — xem mục 13)
 
 ### Version & deploy
 - Fork nhánh **`geo-v043`** = upstream **v0.4.3** + custom. Images: **web + worker `0.4.3-geo3`**, db-migrate `0.4.3-geo1`.
@@ -223,3 +223,33 @@ Config: `~/.elmo/.env` (mode 600, chứa secrets + ADMIN_API_KEYS), `~/.elmo/elm
 - Explorer API trả 500 thay vì 401 khi chưa đăng nhập.
 - Xoá 3 dump DB cũ (~1,8GB) trên server khi chắc không cần rollback.
 - Cân nhắc thêm `evisatovietnam.vn` làm đối thủ của vietnam-visa; đổi tên brand "Vietnam-Visa" (tên vẫn khớp `vietnam-visa.org` của đối thủ, ~18 run).
+
+---
+
+## 13. Cập nhật session 2026-10-26 (trạng thái HIỆN TẠI)
+
+### Nâng upstream v0.7.5 + Jev — ĐÃ DEPLOY
+- Nhánh **`geo-v075`** (fork `bizasa/elmo`, merge commit `583c55f2`). Prod chạy **web/worker/db-migrate `0.7.5-geo1`** từ 12:32 26/10, source `/opt/elmo-src-v075`. Runbook + rollback: [GEO-V075-DEPLOY.md](GEO-V075-DEPLOY.md). Backup trước deploy `/root/elmo-pre-v075-20261026-122021.sql.gz` (759MB). **Rollback = restore dump** (migration 0024 drop cột, không lùi được bằng đổi tag).
+- Mention giờ do **Jev (TypeSafe)** chấm, lưu `run_mentions` (+ `assessments`: sentiment, position, passage). `prompt_runs` append-only (trigger chặn UPDATE). `TYPESAFE_API_KEY` đã nạp `~/.elmo/.env`. Đã chấm lại 26.104 run/90 ngày (~10 phút); visibility gần như không đổi.
+- Fork bỏ `brand_position` (cột còn trong DB, không ai ghi) + bỏ alias `=` (đã strip `=AVIA`, `=VIDI` trong DB). Explorer đọc `run_mentions`. Custom migration → `0031_explorer_reports`.
+- DB `elmo_scratch_v075` = bản sao trước migrate (bảng `new_rm` so sánh trước/sau) — xoá khi hết cần.
+
+### Connector GEO (geo-data-api + gateway Site 360)
+- `geo-data-api` (repo `bizasa/geo-mcp`, commit `ee5ed04`, đã deploy; image rollback `geo-data-api:pre-sentiment`, `:pre-v075`): đọc `run_mentions`; `/overview` thêm khối **`current`** = đúng công thức thẻ Overview dashboard (mỗi prompt lấy ngày chạy gần nhất, ngày tính theo **giờ VN**); endpoint mới **`/sentiment`**; snippets dùng passage Jev.
+- Gateway **Site 360** (`bizasa/vidi-site-360`, deploy `1ee19ecd`): thêm tool **`geo_sentiment`** (24 tool), `geo_brand_overview` hiện số "Hiện tại" trước. Team phải **Disconnect/Connect lại** connector để thấy tool mới.
+- ⚠️ Dashboard Elmo tính "ngày gần nhất" theo **múi giờ trình duyệt** → đợt chạy vắt qua nửa đêm VN làm số khác UTC (Visana: UTC 40% vs VN 50,5%).
+
+### Brand mới (org gigago, 2 tuần/lần)
+- **singesim** + **cambodiaesim**: 20 prompt EN/brand (GSC-grounded), competitor Airalo/Holafly/Nomad/Saily/Ubigi, `delay_override_hours=336`. Lượt đầu 26/10: ~5% visibility cả hai; lượt kế **09/11/2026**. Chi tiết: [GEO-BRANDS-AND-LLM-SETUP-HANDOFF.md](GEO-BRANDS-AND-LLM-SETUP-HANDOFF.md).
+
+### Hướng dẫn team MKT
+- Lark doc (giữ link cũ) cập nhật cho v0.7.5: https://vidivietnam.sg.larksuite.com/docx/YItCdrLx1ozFZKxgdjMl1NQ1gJK — đã share quyền xem + gửi tin vào nhóm **GHM - MARKETING**.
+- Ảnh chụp bằng user tạm `geo-screenshot-temp@vidi.vn` (tạo → chụp Playwright trên server → xoá user ngay; Origin login phải là `https://geo.vidi.com.vn`).
+
+### VIỆC CÒN TREO
+1. **Query Fan-Out ChatGPT trống** — BrightData bỏ `web_search_query`. Đã thử Cloro OK; chờ Chuan mua **Cloro Lite $30** → [GEO-CHATGPT-FANOUT-HANDOFF.md](GEO-CHATGPT-FANOUT-HANDOFF.md).
+2. **Doc MKT**: số/ảnh Overview chụp theo giờ UTC (Visana 40%) — team VN thấy ~50%; chụp lại với `timezoneId: "Asia/Ho_Chi_Minh"` rồi sửa số.
+3. **Khai tử geo-mcp cũ** (lỗ hổng `state` không ký): báo team chuyển sang connector Site 360 → tắt Worker `geo-mcp-server` → bỏ nhánh dò brand theo tên trong `resolveBrandId` (data-api).
+4. Lâu dài: cho gateway gọi Elmo `/api/v1` thay vì đọc DB trực tiếp (schema upstream còn đổi).
+5. Lint fork: 2 lỗi `noExcessiveCognitiveComplexity` (`brightdata.ts`, `explorer/build-data.ts`); test `v1-route-conformance` fail trên Windows (path `\`) — môi trường.
+6. Key TypeSafe + Cloro (free) đã lộ trong chat → tạo key mới khi tiện.
