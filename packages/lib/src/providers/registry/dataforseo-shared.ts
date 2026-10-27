@@ -18,7 +18,7 @@ export const DFS_LANGUAGE_CODE = "en";
 
 export const isDataforseoConfigured = configuredWhen("DATAFORSEO_LOGIN", "DATAFORSEO_PASSWORD");
 
-const DFS_STATUS_OK = 20000;
+export const DFS_STATUS_OK = 20000;
 
 // Non-generic on purpose: the SDK gives every endpoint its own result class, so
 // a generic task type makes a union of two endpoints' responses unassignable.

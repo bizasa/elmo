@@ -189,6 +189,13 @@ export const ENV_REGISTRY: EnvVarSpec[] = [
 			"Extra BrightData accounts spent before BRIGHTDATA_API_TOKEN, each up to a monthly cap: `token@cap,token` (cap defaults to 4500).",
 	},
 	{
+		name: "DATAFORSEO_SCRAPER_MODE",
+		scope: "server",
+		requiredBy: "optional",
+		description:
+			"How DataForSEO's ChatGPT and Gemini scrapers are called: `live` (default, one request), or `standard` / `priority` (queued task, polled; about a third / half the price for a wait of up to ~45 / ~5 minutes).",
+	},
+	{
 		name: "OXYLABS_USERNAME",
 		scope: "server",
 		requiredBy: "dynamic-scrape-targets",

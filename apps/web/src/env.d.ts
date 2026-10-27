@@ -52,6 +52,7 @@ declare global {
 			readonly OLOSTEP_API_KEY?: string;
 			readonly BRIGHTDATA_API_TOKEN?: string;
 			readonly BRIGHTDATA_FREE_TIER_TOKENS?: string;
+			readonly DATAFORSEO_SCRAPER_MODE?: string;
 			readonly OXYLABS_USERNAME?: string;
 			readonly OXYLABS_PASSWORD?: string;
 			readonly CLORO_API_KEY?: string;

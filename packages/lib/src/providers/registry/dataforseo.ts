@@ -12,12 +12,14 @@ import {
 	createDfsSerpApi,
 	DFS_LANGUAGE_CODE,
 	DFS_LOCATION_CODE,
+	DFS_STATUS_OK,
+	type DfsResponse,
 	dfsFirstResult,
 	dfsResultOrError,
 	fanOutQueries,
 	isDataforseoConfigured,
 } from "./dataforseo-shared";
-import { type Attempt, retryTransient, sanitizeForJson } from "./scrape-shared";
+import { type Attempt, retryTransient, sanitizeForJson, sleep } from "./scrape-shared";
 
 /**
  * Models served via the SERP Google AI Mode endpoint (SerpApi). These always
@@ -74,6 +76,95 @@ const SCRAPER_CALLS = {
 			}),
 		]),
 } as const;
+
+/**
+ * How the LLM Scraper is reached (DATAFORSEO_SCRAPER_MODE). `live` answers in one
+ * request; `standard` and `priority` queue a task and poll for it, at a fraction
+ * of the price — DataForSEO lists $0.0012 and $0.0024 per result against live's
+ * $0.004 — for a wait of up to ~45 and ~5 minutes, which a daily or weekly
+ * cadence doesn't notice.
+ */
+type ScraperMode = "live" | "standard" | "priority";
+const SCRAPER_MODES: readonly ScraperMode[] = ["live", "standard", "priority"];
+
+function scraperMode(): ScraperMode {
+	const raw = (process.env.DATAFORSEO_SCRAPER_MODE ?? "").trim().toLowerCase() || "live";
+	if (!SCRAPER_MODES.includes(raw as ScraperMode)) {
+		throw new Error(`DATAFORSEO_SCRAPER_MODE must be one of ${SCRAPER_MODES.join(", ")} (got "${raw}")`);
+	}
+	return raw as ScraperMode;
+}
+
+const QUEUED_SCRAPER_CALLS = {
+	chatgpt: {
+		post: (api: client.AiOptimizationApi, prompt: string, priority: number) =>
+			api.chatGptLlmScraperTaskPost([
+				new client.AiOptimizationChatGptLlmScraperTaskPostRequestInfo({
+					keyword: prompt,
+					priority,
+					location_code: DFS_LOCATION_CODE,
+					language_code: DFS_LANGUAGE_CODE,
+					force_web_search: true,
+				}),
+			]),
+		get: (api: client.AiOptimizationApi, id: string) => api.chatGptLlmScraperTaskGetAdvanced(id),
+	},
+	gemini: {
+		post: (api: client.AiOptimizationApi, prompt: string, priority: number) =>
+			api.geminiLlmScraperTaskPost([
+				new client.AiOptimizationGeminiLlmScraperTaskPostRequestInfo({
+					keyword: prompt,
+					priority,
+					location_code: DFS_LOCATION_CODE,
+					language_code: DFS_LANGUAGE_CODE,
+				}),
+			]),
+		get: (api: client.AiOptimizationApi, id: string) => api.geminiLlmScraperTaskGetAdvanced(id),
+	},
+} satisfies Record<keyof typeof SCRAPER_CALLS, unknown>;
+
+const DFS_TASK_CREATED = 20100;
+/** task_get codes for a task that hasn't finished: "Task Handed." and "Task In Queue.". */
+const DFS_TASK_PENDING = new Set([40601, 40602]);
+
+/**
+ * Budgets for a queued task. The standard queue promises up to ~45 minutes, so
+ * it gets well past that while staying inside the prompt job's 90-minute expiry;
+ * a task is billed when posted, so giving up early only wastes it.
+ */
+const QUEUED_TIMEOUT_MS: Record<Exclude<ScraperMode, "live">, number> = {
+	standard: 75 * 60 * 1000,
+	priority: 20 * 60 * 1000,
+};
+const QUEUED_POLL_MS: Record<Exclude<ScraperMode, "live">, number> = { standard: 60_000, priority: 15_000 };
+
+async function runQueuedScraper(
+	model: keyof typeof SCRAPER_CALLS,
+	prompt: string,
+	mode: Exclude<ScraperMode, "live">,
+): Promise<DfsResponse> {
+	const api = createDfsAiApi();
+	const calls = QUEUED_SCRAPER_CALLS[model];
+	const posted = (await calls.post(api, prompt, mode === "priority" ? 2 : 1))?.tasks?.[0];
+	if (posted?.status_code !== DFS_TASK_CREATED || !posted.id) {
+		throw new Error(`DataForSEO API Error: task_post ${posted?.status_code} ${posted?.status_message}`);
+	}
+
+	const deadline = Date.now() + QUEUED_TIMEOUT_MS[mode];
+	while (true) {
+		await sleep(QUEUED_POLL_MS[mode]);
+		// A failed poll is retried on the next tick: the task is paid for either way.
+		const response = await calls.get(api, posted.id).catch(() => null);
+		const status = response?.tasks?.[0]?.status_code;
+		if (status === DFS_STATUS_OK) return response as DfsResponse;
+		if (status !== undefined && !DFS_TASK_PENDING.has(status)) {
+			throw new Error(`DataForSEO API Error: task ${posted.id} ${status} ${response?.tasks?.[0]?.status_message}`);
+		}
+		if (Date.now() > deadline) {
+			throw new Error(`DataForSEO task ${posted.id} still pending after ${QUEUED_TIMEOUT_MS[mode] / 60_000} minutes`);
+		}
+	}
+}
 
 // Google AI Overview is the AI summary block on a standard Google results page.
 // It comes from the Organic SERP endpoint (not AI Mode's dedicated SERP), so it
@@ -260,7 +351,9 @@ async function runLlmResponse(model: string, prompt: string, options?: ProviderO
 }
 
 async function runLlmScraper(model: keyof typeof SCRAPER_CALLS, prompt: string): Promise<ScrapeResult> {
-	const response = await SCRAPER_CALLS[model](createDfsAiApi(), prompt);
+	const mode = scraperMode();
+	const response =
+		mode === "live" ? await SCRAPER_CALLS[model](createDfsAiApi(), prompt) : await runQueuedScraper(model, prompt, mode);
 	const result = dfsFirstResult<{ model?: string; fan_out_queries?: unknown }>(response);
 	const raw = sanitizeForJson(response);
 	const citations = extractCitationsFromDataforseoScraper(raw);
@@ -298,6 +391,13 @@ export const dataforseo: Provider = {
 		// BrightData provider for these engines).
 		if (!config.webSearch) {
 			return `${config.model}:dataforseo requires :online — this engine always uses web search`;
+		}
+		if (!config.version && config.model in SCRAPER_CALLS) {
+			try {
+				scraperMode();
+			} catch (error) {
+				return (error as Error).message;
+			}
 		}
 		return null;
 	},

@@ -9,6 +9,8 @@ const dataforseoClient = vi.hoisted(() => ({
 	googleOrganicLiveAdvanced: vi.fn(),
 	chatGptLlmScraperLiveAdvanced: vi.fn(),
 	geminiLlmScraperLiveAdvanced: vi.fn(),
+	chatGptLlmScraperTaskPost: vi.fn(),
+	chatGptLlmScraperTaskGetAdvanced: vi.fn(),
 }));
 
 vi.mock("dataforseo-client", () => ({
@@ -18,6 +20,8 @@ vi.mock("dataforseo-client", () => ({
 		geminiLlmResponsesLive = dataforseoClient.geminiLlmResponsesLive;
 		chatGptLlmScraperLiveAdvanced = dataforseoClient.chatGptLlmScraperLiveAdvanced;
 		geminiLlmScraperLiveAdvanced = dataforseoClient.geminiLlmScraperLiveAdvanced;
+		chatGptLlmScraperTaskPost = dataforseoClient.chatGptLlmScraperTaskPost;
+		chatGptLlmScraperTaskGetAdvanced = dataforseoClient.chatGptLlmScraperTaskGetAdvanced;
 	},
 	SerpApi: class {
 		googleAiModeLiveAdvanced = dataforseoClient.googleAiModeLiveAdvanced;
@@ -58,6 +62,11 @@ vi.mock("dataforseo-client", () => ({
 			Object.assign(this, args);
 		}
 	},
+	AiOptimizationChatGptLlmScraperTaskPostRequestInfo: class {
+		constructor(args: Record<string, unknown>) {
+			Object.assign(this, args);
+		}
+	},
 }));
 
 import { extractCitations, extractTextContent } from "../../text-extraction";
@@ -69,6 +78,7 @@ const stored = (result: { rawOutput: unknown }) => extractRun(result.rawOutput, 
 afterEach(() => {
 	vi.clearAllMocks();
 	vi.unstubAllGlobals();
+	vi.unstubAllEnvs();
 	vi.useRealTimers();
 });
 
@@ -133,6 +143,51 @@ describe("dataforseo provider", () => {
 			expect(stored(result).citations).toHaveLength(1);
 			expect(stored(result).citations[0].domain).toBe("techradar.com");
 			expect(result.modelVersion).toBe("gpt-5-5");
+		});
+
+		it("queues the ChatGPT scrape at normal priority in standard mode and waits for the task", async () => {
+			vi.stubEnv("DATAFORSEO_SCRAPER_MODE", "standard");
+			vi.useFakeTimers();
+			dataforseoClient.chatGptLlmScraperTaskPost.mockResolvedValueOnce({
+				tasks: [{ id: "task-1", status_code: 20100, status_message: "Task Created." }],
+			});
+			dataforseoClient.chatGptLlmScraperTaskGetAdvanced
+				.mockResolvedValueOnce({ tasks: [{ id: "task-1", status_code: 40602, status_message: "Task In Queue." }] })
+				.mockResolvedValueOnce(scraperResponse(CHATGPT_SCRAPE));
+
+			const pending = dataforseo.run("chatgpt", "What speaker released last month reviews well?", { webSearch: true });
+			await vi.advanceTimersByTimeAsync(2 * 60_000);
+			const result = await pending;
+
+			expect(dataforseoClient.chatGptLlmScraperLiveAdvanced).not.toHaveBeenCalled();
+			const [payload] = dataforseoClient.chatGptLlmScraperTaskPost.mock.calls[0];
+			expect(payload[0]).toMatchObject({ priority: 1, location_code: 2840, force_web_search: true });
+			expect(dataforseoClient.chatGptLlmScraperTaskGetAdvanced).toHaveBeenCalledWith("task-1");
+			expect(result.webQueries).toEqual(["best speakers released July 2026"]);
+			expect(stored(result).citations[0].domain).toBe("techradar.com");
+		});
+
+		it("fails the run when a queued task errors instead of waiting it out", async () => {
+			vi.stubEnv("DATAFORSEO_SCRAPER_MODE", "standard");
+			vi.useFakeTimers();
+			dataforseoClient.chatGptLlmScraperTaskPost.mockResolvedValueOnce({
+				tasks: [{ id: "task-2", status_code: 20100, status_message: "Task Created." }],
+			});
+			dataforseoClient.chatGptLlmScraperTaskGetAdvanced.mockResolvedValueOnce({
+				tasks: [{ id: "task-2", status_code: 40200, status_message: "Payment Required." }],
+			});
+
+			const pending = dataforseo.run("chatgpt", "Best speaker?", { webSearch: true });
+			const failed = expect(pending).rejects.toThrow(/task-2 40200 Payment Required/);
+			await vi.advanceTimersByTimeAsync(60_000);
+			await failed;
+		});
+
+		it("rejects a ChatGPT scrape target when DATAFORSEO_SCRAPER_MODE is not a known mode", () => {
+			vi.stubEnv("DATAFORSEO_SCRAPER_MODE", "cheap");
+			expect(dataforseo.validateTarget?.({ model: "chatgpt", provider: "dataforseo", webSearch: true })).toMatch(
+				/DATAFORSEO_SCRAPER_MODE must be one of live, standard, priority/,
+			);
 		});
 
 		it("routes to LLM Responses instead when the target pins a model_name", async () => {
