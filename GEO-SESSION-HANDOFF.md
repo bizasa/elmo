@@ -247,9 +247,28 @@ Config: `~/.elmo/.env` (mode 600, chứa secrets + ADMIN_API_KEYS), `~/.elmo/elm
 - Ảnh chụp bằng user tạm `geo-screenshot-temp@vidi.vn` (tạo → chụp Playwright trên server → xoá user ngay; Origin login phải là `https://geo.vidi.com.vn`).
 
 ### VIỆC CÒN TREO
-1. **Query Fan-Out ChatGPT trống** — BrightData bỏ `web_search_query`. Đã thử Cloro OK; chờ Chuan mua **Cloro Lite $30** → [GEO-CHATGPT-FANOUT-HANDOFF.md](GEO-CHATGPT-FANOUT-HANDOFF.md).
+1. ~~Query Fan-Out ChatGPT trống~~ → **ĐÃ XỬ LÝ 27/10** (mục 14).
 2. **Doc MKT**: số/ảnh Overview chụp theo giờ UTC (Visana 40%) — team VN thấy ~50%; chụp lại với `timezoneId: "Asia/Ho_Chi_Minh"` rồi sửa số.
 3. **Khai tử geo-mcp cũ** (lỗ hổng `state` không ký): báo team chuyển sang connector Site 360 → tắt Worker `geo-mcp-server` → bỏ nhánh dò brand theo tên trong `resolveBrandId` (data-api).
 4. Lâu dài: cho gateway gọi Elmo `/api/v1` thay vì đọc DB trực tiếp (schema upstream còn đổi).
 5. Lint fork: 2 lỗi `noExcessiveCognitiveComplexity` (`brightdata.ts`, `explorer/build-data.ts`); test `v1-route-conformance` fail trên Windows (path `\`) — môi trường.
-6. Key TypeSafe + Cloro (free) đã lộ trong chat → tạo key mới khi tiện.
+6. Key TypeSafe + Cloro (free) + DataForSEO trial đã lộ trong chat → tạo key mới / xoá khi tiện.
+
+---
+
+## 14. Cập nhật 2026-10-27 — ChatGPT chuyển sang DataForSEO standard queue (trạng thái HIỆN TẠI)
+
+- **Nguyên nhân Query Fan-Out trống:** BrightData ngừng thu `web_search_query` + `model` ở dataset ChatGPT (email BrightData xác nhận; dữ liệu rớt từ ~26/08). So giá: BrightData $0 (free 5.000 lượt/tháng × 3 tài khoản ≈ 15.000) nhưng không có fan-out; Cloro Lite $30/tháng; **DataForSEO live $0,004 / standard $0,0012 mỗi lượt** → chọn DataForSEO standard (≈ **$5,3/tháng** cho ~4.400 lượt ChatGPT). Gemini + Google AI Mode giữ BrightData (free).
+- **Fork:** biến mới `DATAFORSEO_SCRAPER_MODE` (`live` | `standard` | `priority`) — commit `8a55020b`.
+- **Prod:** `SCRAPE_TARGETS=chatgpt:dataforseo:online,google-ai-mode:brightdata:online,gemini:brightdata:online`, `DATAFORSEO_SCRAPER_MODE=standard`, worker **`0.7.5-geo2`** (web/db-migrate `0.7.5-geo1`). Key DataForSEO mới nạp $51; đổi key bằng `printf key | ssh contabo-sg 'sh /root/elmo-set-dataforseo.sh'` (PowerShell: lệnh `Read-Host -AsSecureString` trong lịch sử). test-provider standard: PASS (1m02s).
+- **Sự cố sáng 27/10:** key trial $1 hết sau ~180 lượt → 660 lượt ChatGPT lỗi (không bị tính tiền); 219 prompt tự chạy lại với key mới.
+- Chi tiết + so sánh giá + kết quả thử: [GEO-CHATGPT-FANOUT-HANDOFF.md](GEO-CHATGPT-FANOUT-HANDOFF.md).
+
+### DataForSEO — API khác đáng dùng (đã gọi thử)
+- **SERP Google AI Mode** $0,004 / **AI Overview** $0,002, chạy được **location VN** (BrightData không geo được, AI Overview BrightData đang lỗi). Elmo hardcode `DFS_LOCATION_CODE=2840` (US) → muốn VN phải vá fork, location theo brand (brand VN → VN, brand eSIM → US).
+- **LLM Mentions** $0,10/lần + $0,001/dòng: visana.vn xuất hiện trong 547 câu trả lời Google AI ở VN, chinaesim.com 10 câu ChatGPT (ChatGPT chỉ US/EN) → dùng tìm prompt mới hằng tháng.
+
+### VIỆC CÒN TREO (thêm)
+- Sửa doc MKT mục 4.6 (Query Fan-Out) khi đợt chạy mới có dữ liệu; báo team Citations ChatGPT gãy từ 27/10 do đổi nguồn.
+- Cân nhắc: vá location theo brand + chuyển AI Mode sang DataForSEO + bật lại AI Overview (≈ $15–25/tháng); tra LLM Mentions hằng tháng.
+- Mỗi prompt giữ 1 slot worker (10) tới khi task ChatGPT xong → đợt lớn có thể mất vài giờ.
