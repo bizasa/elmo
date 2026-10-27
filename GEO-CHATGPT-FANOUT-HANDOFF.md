@@ -1,4 +1,4 @@
-# ChatGPT Query Fan-Out trống — handoff (26/10/2026, CHƯA xử lý xong)
+# ChatGPT Query Fan-Out — handoff (26/10/2026; ĐÃ CHUYỂN sang DataForSEO 27/10)
 
 ## Vấn đề
 Trang **Query Fan-Out** trên geo.vidi.com.vn trống: ChatGPT không còn truy vấn tìm kiếm nào. Gemini và Google AI Mode thì xưa nay không nhà cung cấp nào lộ truy vấn (không phải lỗi).
@@ -52,3 +52,7 @@ Thử 27/10 (tài khoản trial $1, tốn $0,044): cùng 8 prompt Visana, locati
 | DataForSEO Standard queue (phải vá fork) | ≈ $5,3 |
 
 **Chuyển:** thêm `DATAFORSEO_LOGIN` + `DATAFORSEO_PASSWORD` (Chuan có; key đưa dạng base64 `login:password`) vào `~/.elmo/.env`, đổi `chatgpt:brightdata:online` → `chatgpt:dataforseo:online` trong `SCRAPE_TARGETS`, recreate worker + web. Không cần Cloro nữa.
+
+## ĐÃ CHUYỂN 27/10/2026 ~10:50 (giờ VN)
+`SCRAPE_TARGETS=chatgpt:dataforseo:online,google-ai-mode:brightdata:online,gemini:brightdata:online`; `DATAFORSEO_LOGIN/PASSWORD` trong `~/.elmo/.env` (backup `.env.bak-pre-dataforseo-*`, `elmo.yaml.pre-dataforseo-*`). `scripts/test-provider.ts --target chatgpt:dataforseo:online` trong container worker: PASS (15 s, có web query + citations). Tài khoản DataForSEO còn ~$0,7 trial — **Chuan phải nạp (tối thiểu $50)** trước đợt chạy lớn, hết tiền là ChatGPT lỗi. Rollback: đổi lại `chatgpt:brightdata:online` + recreate worker web.
+Còn: kiểm Query Fan-Out sau đợt chạy đầu; sửa doc MKT mục 4.6; báo team Citations ChatGPT gãy ở ngày chuyển; đổi mật khẩu API DataForSEO (đã lộ trong chat).
