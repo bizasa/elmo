@@ -56,3 +56,10 @@ Thử 27/10 (tài khoản trial $1, tốn $0,044): cùng 8 prompt Visana, locati
 ## ĐÃ CHUYỂN 27/10/2026 ~10:50 (giờ VN)
 `SCRAPE_TARGETS=chatgpt:dataforseo:online,google-ai-mode:brightdata:online,gemini:brightdata:online`; `DATAFORSEO_LOGIN/PASSWORD` trong `~/.elmo/.env` (backup `.env.bak-pre-dataforseo-*`, `elmo.yaml.pre-dataforseo-*`). `scripts/test-provider.ts --target chatgpt:dataforseo:online` trong container worker: PASS (15 s, có web query + citations). Tài khoản DataForSEO còn ~$0,7 trial — **Chuan phải nạp (tối thiểu $50)** trước đợt chạy lớn, hết tiền là ChatGPT lỗi. Rollback: đổi lại `chatgpt:brightdata:online` + recreate worker web.
 Còn: kiểm Query Fan-Out sau đợt chạy đầu; sửa doc MKT mục 4.6; báo team Citations ChatGPT gãy ở ngày chuyển; đổi mật khẩu API DataForSEO (đã lộ trong chat).
+
+## 27/10 chiều: Standard queue — ĐANG CHẠY
+- Fork thêm `DATAFORSEO_SCRAPER_MODE` (`live` mặc định | `standard` | `priority`) cho LLM Scraper ChatGPT/Gemini (commit `8a55020b`): `task_post` + poll `task_get/advanced` mỗi 60 s (standard, trần 75 phút) / 15 s (priority, trần 20 phút); lỗi task (vd 40200 hết tiền) báo ngay.
+- Prod: worker **`0.7.5-geo2`** (source `/opt/elmo-src-v075-geo2`; web/db-migrate vẫn `0.7.5-geo1`), `.env` có `DATAFORSEO_SCRAPER_MODE=standard` + key DataForSEO MỚI (Chuan nạp $51; key cũ trial hết tiền đã bỏ). Nạp key bằng `/root/elmo-set-dataforseo.sh` (đọc stdin, kiểm key, backup, recreate).
+- test-provider trong container ở chế độ standard: PASS (1m02s, có web query + citation). Chi phí ChatGPT ≈ 4.400 × $0,0012 ≈ **$5,3/tháng**.
+- Sự cố 27/10 sáng: key trial $1 hết sau ~180 lượt → 660 lượt ChatGPT lỗi (không bị tính tiền), 219 prompt chạy lại sau khi có key mới.
+- Lưu ý: mỗi prompt giữ 1 slot worker (10 slot) tới khi task ChatGPT xong → đợt lớn (Visana 72 prompt) có thể mất vài giờ.
