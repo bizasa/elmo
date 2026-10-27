@@ -37,3 +37,18 @@ Lưu ý: biểu đồ **Citations** của ChatGPT sẽ gãy ở ngày chuyển (
 4. Sửa doc hướng dẫn MKT (Lark `YItCdrLx1ozFZKxgdjMl1NQ1gJK`, mục 4.6) bỏ cảnh báo "trang này trống".
 
 Script thử: `cloro-trial.ts` (scratchpad session 26/10, không commit) — gọi `https://api.cloro.dev/v1/async/task` taskType `CHATGPT`, poll `/{id}`.
+
+## Cập nhật 27/10: DataForSEO rẻ hơn Cloro → đề xuất DataForSEO Live
+Giá LLM Scraper ChatGPT (dataforseo.com/pricing/ai-optimization/llm-scraper): **Live $0,004/lượt** (Elmo đang gọi `chat_gpt/llm_scraper/live/advanced`), Priority queue $0,0024, Standard queue $0,0012 (POST+GET, ≤45 phút — Elmo chưa hỗ trợ, cần vá fork). Trả theo lượng dùng.
+
+Thử 27/10 (tài khoản trial $1, tốn $0,044): cùng 8 prompt Visana, location US (mặc định Elmo 2840/en) + 3 lượt VN (2704/vi):
+- **11/11 có truy vấn tìm kiếm** (1–3/lượt), model `gpt-6`, 15–71 s/lượt (nhanh hơn Cloro), 9–40 URL/lượt.
+- Visana khớp BrightData 7/8 ở US; location VN thì khớp cả prompt lệch ("Bảng giá dịch vụ visa Trung Quốc").
+
+| ~4.400 run ChatGPT/tháng | $/tháng |
+|---|---|
+| Cloro Lite | $30 cố định |
+| **DataForSEO Live (không sửa code)** | **≈ $17,5** |
+| DataForSEO Standard queue (phải vá fork) | ≈ $5,3 |
+
+**Chuyển:** thêm `DATAFORSEO_LOGIN` + `DATAFORSEO_PASSWORD` (Chuan có; key đưa dạng base64 `login:password`) vào `~/.elmo/.env`, đổi `chatgpt:brightdata:online` → `chatgpt:dataforseo:online` trong `SCRAPE_TARGETS`, recreate worker + web. Không cần Cloro nữa.
